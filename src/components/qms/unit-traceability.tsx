@@ -485,14 +485,16 @@ export function UnitInspectionModal({
             </div>
           </div>
 
-          {/* Visual Evidence & Documents Gallery */}
-          <div>
-            <div className="flex items-center justify-between mb-3">
-              <div className="t-label" style={{ color: "var(--muted)" }}>VISUAL PROOFS & ATTACHED DOCUMENTS ({allUnitEvidence.length})</div>
-              {unit.defectInfo && <span className="t-label" style={{ color: "var(--muted)" }}>Inspection Photos, Hydrostatic Charts, Certs</span>}
+          {/* Visual Evidence & Documents Gallery - ONLY shown when evidence exists / failure detected */}
+          {allUnitEvidence.length > 0 && (
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <div className="t-label" style={{ color: "var(--muted)" }}>VISUAL PROOFS & ATTACHED DOCUMENTS ({allUnitEvidence.length})</div>
+                {unit.defectInfo && <span className="t-label" style={{ color: "var(--muted)" }}>Inspection Photos, Hydrostatic Charts, Certs</span>}
+              </div>
+              <EvidenceGallery evidenceData={allUnitEvidence} />
             </div>
-            <EvidenceGallery evidenceData={allUnitEvidence} />
-          </div>
+          )}
         </div>
 
         {/* Footer */}
