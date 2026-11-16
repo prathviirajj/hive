@@ -1,8 +1,9 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  output: "standalone",
-  /* config options here */
+  outputFileTracingIncludes: {
+    "/api/**/*": ["./db/**/*", "./prisma/**/*"],
+  },
   typescript: {
     ignoreBuildErrors: true,
   },

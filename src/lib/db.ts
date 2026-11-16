@@ -9,36 +9,68 @@ const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined
 }
 
-// In Next.js dev mode with Turbopack, the @prisma/client module can be cached
-// in-memory with an OLD schema (before new models were added via prisma generate).
-// We detect this by probing for a known recent model (qmsUser) and, if missing,
-// we re-evaluate the actual .prisma/client/index.js file to get a fresh class
-// that includes all current models.
+function resolveDbUrl(): string {
+  // If running on Vercel, copy SQLite db to /tmp so it is writable and accessible to serverless lambda
+  if (process.env.VERCEL) {
+    const tmpDbPath = path.join('/tmp', 'custom.db');
+    const sourceDbPath = path.join(process.cwd(), 'db', 'custom.db');
+    if (!fs.existsSync(tmpDbPath) && fs.existsSync(sourceDbPath)) {
+      try {
+        fs.copyFileSync(sourceDbPath, tmpDbPath);
+        console.log(`[db.ts] Copied db from ${sourceDbPath} to ${tmpDbPath}`);
+      } catch (e) {
+        console.error(`[db.ts] Failed copying db to /tmp:`, e);
+      }
+    }
+    if (fs.existsSync(tmpDbPath)) {
+      return `file:${tmpDbPath}`;
+    }
+  }
+
+  if (process.env.DATABASE_URL) {
+    return process.env.DATABASE_URL;
+  }
+
+  return "file:../db/custom.db";
+}
+
 function loadFreshPrismaClient(): any {
+  if (process.env.NODE_ENV === 'production') {
+    return PrismaClient;
+  }
   try {
     const probe = new PrismaClient({ log: [] } as any);
     const models = (probe as any)._runtimeDataModel?.models || {};
     if ('QmsUser' in models) return PrismaClient;
   } catch {}
 
-  // Stale cache - load the actual .prisma/client/index.js file fresh
   try {
     const prismaClientPath = path.resolve(process.cwd(), 'node_modules/.prisma/client/index.js');
-    const content = fs.readFileSync(prismaClientPath, 'utf-8');
-    const moduleObj: any = { exports: {} };
-    const fn = new Function('module', 'exports', 'require', '__dirname', '__filename', content);
-    fn(moduleObj, moduleObj.exports, nodeRequire, path.dirname(prismaClientPath), prismaClientPath);
-    return moduleObj.exports.PrismaClient;
+    if (fs.existsSync(prismaClientPath)) {
+      const content = fs.readFileSync(prismaClientPath, 'utf-8');
+      const moduleObj: any = { exports: {} };
+      const fn = new Function('module', 'exports', 'require', '__dirname', '__filename', content);
+      fn(moduleObj, moduleObj.exports, nodeRequire, path.dirname(prismaClientPath), prismaClientPath);
+      return moduleObj.exports.PrismaClient;
+    }
   } catch (e) {
     console.error('[db.ts] Failed to load fresh PrismaClient:', e);
-    return PrismaClient;
   }
+  return PrismaClient;
 }
 
 const FreshClient = loadFreshPrismaClient();
 
 function makeClient() {
-  return new FreshClient({ log: ['query'] } as any);
+  const dbUrl = resolveDbUrl();
+  return new FreshClient({
+    datasources: {
+      db: {
+        url: dbUrl,
+      },
+    },
+    log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
+  } as any);
 }
 
 let db: any;
