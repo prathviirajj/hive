@@ -11,6 +11,45 @@ export async function GET(req: NextRequest) {
     where: { routeCode: plant },
     orderBy: { createdAt: "desc" },
     include: {
+      inspections: {
+        include: {
+          stage: { select: { stageCode: true, name: true, documentRef: true } },
+        },
+        orderBy: { inspectedAt: "desc" },
+      },
+      ncrs: {
+        select: {
+          id: true,
+          ncrNumber: true,
+          defectCategory: true,
+          severity: true,
+          description: true,
+          rootCause: true,
+          containment: true,
+          correctiveAction: true,
+          status: true,
+          capaOwner: true,
+          createdAt: true,
+          inspection: {
+            select: { recordNo: true, evidencePath: true, measurements: true, htuNo: true },
+          },
+        },
+      },
+      reworkJobs: {
+        select: {
+          id: true,
+          rwoNumber: true,
+          htuNo: true,
+          defectCategory: true,
+          defectDescription: true,
+          status: true,
+          severity: true,
+          originatingProcess: true,
+          detectionProcess: true,
+          reworkProcess: true,
+          defectQuantity: true,
+        },
+      },
       _count: {
         select: { inspections: true, ncrs: true, materialLots: true, genealogy: true, reworkJobs: true },
       },
@@ -68,6 +107,9 @@ export async function GET(req: NextRequest) {
       reworkJobCount: w._count.reworkJobs,
       htuCount: w._count.genealogy,
       materialLotCount: w._count.materialLots,
+      inspections: w.inspections || [],
+      ncrs: w.ncrs || [],
+      reworkJobs: w.reworkJobs || [],
     });
   }
 

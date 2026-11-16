@@ -29,6 +29,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { Progress } from "@/components/ui/progress";
 import { Separator } from "@/components/ui/separator";
+import {
+  buildUnitLedger,
+  UnitMatrixView,
+  UnitInspectionModal,
+  EndToEndBatchReport,
+  SalesOrderDetail,
+  TrackedUnit,
+} from "@/components/qms/unit-traceability";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -347,9 +355,9 @@ function AppShell({ user, onLogout }: { user: User; onLogout: () => void }) {
   }, [user.role, active]);
 
   return (
-    <div className="min-h-screen flex flex-col" style={{ backgroundColor: "var(--canvas)" }}>
-      {/* ===== Header (sticky) - Swiss minimal ===== */}
-      <header className="sticky top-0 z-30 border-b" style={{ borderColor: "var(--hairline)", backgroundColor: "var(--surface-card)" }}>
+    <div className="h-screen w-screen flex flex-col overflow-hidden" style={{ backgroundColor: "var(--canvas)" }}>
+      {/* ===== Header (pinned) - Swiss minimal ===== */}
+      <header className="h-14 shrink-0 z-30 border-b flex-none" style={{ borderColor: "var(--hairline)", backgroundColor: "var(--surface-card)" }}>
         <div className="flex items-center h-14 px-4 md:px-6">
           <button onClick={() => setNavOpen(true)} className="md:hidden p-2 -ml-2" aria-label="Menu" data-tooltip="Open navigation" data-tooltip-pos="right">
             <Menu size={18} style={{ color: "var(--ink)" }} />
@@ -568,15 +576,11 @@ function AppShell({ user, onLogout }: { user: User; onLogout: () => void }) {
         )}
       </header>
 
-      <div className="flex flex-1">
-        {/* ===== Sidebar (sticky) - minimal hairline rail ===== */}
+      <div className="flex flex-1 min-h-0 overflow-hidden">
+        {/* ===== Sidebar (pinned) - minimal hairline rail ===== */}
         <aside data-tour="sidebar"
-          className={cn("hidden md:flex flex-col border-r transition-all", sidebarCollapsed ? "w-14" : "w-56")}
+          className={cn("hidden md:flex flex-col border-r h-full shrink-0 overflow-y-auto transition-all", sidebarCollapsed ? "w-14" : "w-56")}
           style={{
-            position: "sticky",
-            top: "56px",
-            height: "calc(100vh - 56px)",
-            overflowY: "auto",
             borderColor: "var(--hairline)",
             backgroundColor: "var(--surface-card)",
           }}
@@ -584,7 +588,7 @@ function AppShell({ user, onLogout }: { user: User; onLogout: () => void }) {
           <SideNav groups={visibleNavGroups} active={active} onNavigate={navigateTo} collapsed={sidebarCollapsed} />
           <button
             onClick={() => setSidebarCollapsed(!sidebarCollapsed)} data-tooltip="Collapse/expand sidebar"
-            className="flex items-center justify-center gap-2 py-2.5 border-t t-label transition-colors hover:bg-[var(--canvas-soft)]"
+            className="flex items-center justify-center gap-2 py-2.5 border-t t-label transition-colors hover:bg-[var(--canvas-soft)] mt-auto shrink-0"
             style={{ borderColor: "var(--hairline)", color: "var(--muted)" }}
           >
             {sidebarCollapsed ? <ChevronRight size={13} /> : <><ChevronLeft size={13} /> COLLAPSE</>}
@@ -601,8 +605,8 @@ function AppShell({ user, onLogout }: { user: User; onLogout: () => void }) {
           </SheetContent>
         </Sheet>
 
-        {/* ===== Main content (scrolls naturally with body) ===== */}
-        <main className="flex-1 min-w-0" style={{ overflowX: "clip" }}>
+        {/* ===== Main content (scrolls smoothly in dedicated container) ===== */}
+        <main className="flex-1 min-w-0 h-full overflow-y-auto scroll-fine" style={{ overflowX: "hidden" }}>
           <ModuleRouter active={active} plant={plant} plantInfo={currentPlant} user={user} onNavigate={navigateTo} prefillStage={inspectPrefillStage} onInspect={navigateToInspect} onStartInspection={handleStartInspection} />
         </main>
       </div>
@@ -1897,7 +1901,7 @@ function WorkOrdersModule({ plant }: { plant: string }) {
 
       <Sheet open={!!selected} onOpenChange={(o) => !o && setSelected(null)}>
         <SheetContent className="w-full md:w-[60vw] md:max-w-[1000px] p-0 overflow-y-auto" style={{ backgroundColor: "var(--surface-card)" }}>
-          {selected && <WorkOrderDetail wo={selected} plant={plant} />}
+          {selected && <WorkOrderDetail wo={selected} plant={plant} onClose={() => setSelected(null)} />}
         </SheetContent>
       </Sheet>
 
@@ -2049,31 +2053,33 @@ function ImportPODialog({ plant, onClose, onImported }: { plant: string; onClose
   );
 }
 
-function WorkOrderDetail({ wo, plant }: { wo: any; plant: string }) {
+function WorkOrderDetail({ wo, plant, onClose }: { wo: any; plant: string; onClose?: () => void }) {
   const [inspections, setInspections] = useState<any[]>([]);
   const [ncrs, setNcrs] = useState<any[]>([]);
   const [reworkJobs, setReworkJobs] = useState<any[]>([]);
-  const [htus, setHtus] = useState<any[]>([]);
-  const [tab, setTab] = useState("overview");
+  const [tab, setTab] = useState("units");
+  const [selectedUnit, setSelectedUnit] = useState<TrackedUnit | null>(null);
 
   useEffect(() => {
-    fetch(`/api/inspections?wo=${wo.id}&limit=9999`).then(r => r.json()).then(d => setInspections(d.records || []));
-    fetch(`/api/ncrs?status=all`).then(r => r.json()).then(d => setNcrs((d.ncrs || []).filter((n: any) => n.workOrder?.woNumber === wo.woNumber)));
-    // Fetch rework jobs for this WO
-    fetch(`/api/rework?limit=9999`).then(r => r.json()).then(d => setReworkJobs((d.jobs || []).filter((j: any) => j.workOrderId === wo.id)));
-    // Derive unique HTUs from inspection records
-    const htuMap = new Map<string, { htuNo: string; inspections: any[]; status: string }>();
-    (inspections || []).forEach((r: any) => {
-      if (!r.htuNo) return;
-      if (!htuMap.has(r.htuNo)) htuMap.set(r.htuNo, { htuNo: r.htuNo, inspections: [], status: "Planned" });
-      const htu = htuMap.get(r.htuNo)!;
-      htu.inspections.push(r);
-      if (r.overallResult === "Pass") htu.status = "Accepted";
-      else if (r.overallResult === "Fail") htu.status = "NCR/Rework";
-      else if (r.overallResult === "Hold") htu.status = "On Hold";
-    });
-    setHtus(Array.from(htuMap.values()));
-  }, [wo.id, wo.woNumber, inspections]);
+    let mounted = true;
+    Promise.all([
+      fetch(`/api/inspections?wo=${wo.id}&limit=9999`).then(r => r.json()),
+      fetch(`/api/ncrs?status=all`).then(r => r.json()),
+      fetch(`/api/rework?limit=9999`).then(r => r.json()),
+    ]).then(([inspData, ncrData, rwData]) => {
+      if (!mounted) return;
+      setInspections(inspData.records || []);
+      setNcrs((ncrData.ncrs || []).filter((n: any) => n.workOrder?.woNumber === wo.woNumber || n.workOrderId === wo.id));
+      setReworkJobs((rwData.jobs || []).filter((j: any) => j.workOrderId === wo.id || j.workOrder?.woNumber === wo.woNumber));
+    }).catch(console.error);
+
+    return () => { mounted = false; };
+  }, [wo.id, wo.woNumber]);
+
+  // Build the complete unit-by-unit end-to-end ledger
+  const units = useMemo(() => {
+    return buildUnitLedger(wo, inspections, ncrs, reworkJobs);
+  }, [wo, inspections, ncrs, reworkJobs]);
 
   // Compute separate indicators (not one compressed progress bar)
   const unitCompletion = { completed: wo.completedQty, planned: wo.plannedQty, pct: wo.plannedQty > 0 ? Math.round((wo.completedQty / wo.plannedQty) * 100) : 0 };
@@ -2083,23 +2089,76 @@ function WorkOrderDetail({ wo, plant }: { wo: any; plant: string }) {
     total: inspections.length,
   };
   const materialReadiness = wo.materialStatus === "Available";
+  const defectUnitsCount = units.filter(u => u.status === "Failed / Contained" || u.status === "Under Rework").length;
   const uniqueHtuCount = new Set(inspections.map(r => r.htuNo).filter(Boolean)).size;
 
   return (
     <div>
-      <SheetHeader className="px-6 pt-6 pb-4 border-b" style={{ borderColor: "var(--hairline)" }}>
-        <SheetTitle className="t-display-sm" style={{ color: "var(--ink)" }}>{wo.woNumber}</SheetTitle>
-        <SheetDescription className="t-body-md" style={{ color: "var(--muted)" }}>{wo.customer} - {wo.itemName}</SheetDescription>
+      <SheetHeader className="px-6 pt-6 pb-4 border-b sticky top-0 z-10" style={{ borderColor: "var(--hairline)", backgroundColor: "var(--surface-card)" }}>
+        <div className="flex items-center justify-between">
+          <div>
+            <div className="flex items-center gap-2">
+              <SheetTitle className="t-display-sm" style={{ color: "var(--ink)" }}>{wo.woNumber}</SheetTitle>
+              <StatusBadge status={wo.status} size="xs" />
+            </div>
+            <SheetDescription className="t-body-md mt-0.5" style={{ color: "var(--muted)" }}>
+              {wo.customer} · {wo.itemName} ({wo.size})
+            </SheetDescription>
+          </div>
+          <div className="flex items-center gap-4">
+            <div className="text-right">
+              <div className="t-label" style={{ color: "var(--muted)" }}>BATCH PROGRESS</div>
+              <div className="t-title-sm font-mono mt-0.5" style={{ color: "var(--ink)" }}>
+                {wo.completedQty} / {wo.plannedQty} <span className="t-label font-normal" style={{ color: "var(--muted)" }}>units</span>
+              </div>
+            </div>
+            {onClose && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={onClose}
+                className="h-8 w-8 p-0 text-[var(--muted)] hover:text-[var(--ink)]"
+                aria-label="Close"
+              >
+                <X size={16} />
+              </Button>
+            )}
+          </div>
+        </div>
       </SheetHeader>
+
       <div className="p-6">
-        <Tabs value={tab} onValueChange={setTab}>
-          <TabsList className="grid w-full grid-cols-5" style={{ backgroundColor: "var(--canvas-soft)" }}>
+        <Tabs defaultValue="units">
+          <TabsList className="grid w-full grid-cols-6" style={{ backgroundColor: "var(--canvas-soft)" }}>
+            <TabsTrigger value="units" className="t-body-sm font-medium">Units ({units.length})</TabsTrigger>
+            <TabsTrigger value="report" className="t-body-sm font-medium">Batch Report</TabsTrigger>
             <TabsTrigger value="overview" className="t-body-sm">Overview</TabsTrigger>
-            <TabsTrigger value="htu" className="t-body-sm">HTU Register ({uniqueHtuCount})</TabsTrigger>
             <TabsTrigger value="inspections" className="t-body-sm">Inspections ({inspections.length})</TabsTrigger>
-            <TabsTrigger value="ncrs" className="t-body-sm">NCRs ({ncrs.length})</TabsTrigger>
-            <TabsTrigger value="gates" className="t-body-sm">Quality Gates</TabsTrigger>
+            <TabsTrigger value="ncrs" className="t-body-sm">Defects ({ncrs.length})</TabsTrigger>
+            <TabsTrigger value="gates" className="t-body-sm">Gates</TabsTrigger>
           </TabsList>
+
+          {/* === Units Tab: Unit-by-Unit Tracking Matrix === */}
+          <TabsContent value="units" className="mt-5 space-y-4">
+            <div className="rounded-lg p-3 flex items-center justify-between" style={{ backgroundColor: "var(--canvas-soft)", border: "1px solid var(--hairline-soft)" }}>
+              <div className="flex items-center gap-2">
+                <Boxes size={15} style={{ color: "var(--primary)" }} />
+                <span className="t-body-sm" style={{ color: "var(--ink)", fontWeight: 500 }}>
+                  Unit-Level Traceability Ledger: Every radiator serialized and tracked through S01 to S17
+                </span>
+              </div>
+              <span className="t-label" style={{ color: defectUnitsCount > 0 ? "var(--semantic-error)" : "var(--semantic-success)" }}>
+                {defectUnitsCount > 0 ? `${defectUnitsCount} units require attention` : "All produced units compliant"}
+              </span>
+            </div>
+
+            <UnitMatrixView units={units} onInspectUnit={setSelectedUnit} />
+          </TabsContent>
+
+          {/* === End-to-End Batch Report Tab === */}
+          <TabsContent value="report" className="mt-5">
+            <EndToEndBatchReport wo={wo} units={units} />
+          </TabsContent>
 
           {/* === Overview Tab - separate indicators === */}
           <TabsContent value="overview" className="mt-5 space-y-4">
@@ -2187,56 +2246,75 @@ function WorkOrderDetail({ wo, plant }: { wo: any; plant: string }) {
             </div>
           </TabsContent>
 
-          {/* === HTU Register Tab === */}
-          <TabsContent value="htu" className="mt-5 max-h-96 overflow-y-auto scroll-fine">
+          {/* === Inspections Tab === */}
+          <TabsContent value="inspections" className="mt-5 max-h-96 overflow-y-auto scroll-fine">
             <div className="space-y-2">
-              {htus.map((htu) => (
-                <div key={htu.htuNo} className="rounded-lg p-2.5" style={{ backgroundColor: "var(--canvas-soft)" }}>
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="t-code t-body-sm font-medium" style={{ color: "var(--ht-slate-blue)" }}>{htu.htuNo}</span>
-                    <StatusBadge status={htu.status} size="xs" />
+              {inspections.map((r) => {
+                let evidenceCount = 0;
+                if (r.evidencePath) {
+                  try {
+                    evidenceCount = JSON.parse(r.evidencePath).length;
+                  } catch {}
+                }
+                return (
+                  <div key={r.id} className="flex items-center justify-between rounded-lg p-3" style={{ backgroundColor: "var(--canvas-soft)", border: "1px solid var(--hairline-soft)" }}>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="t-body-sm font-medium" style={{ color: "var(--ink)" }}>{r.recordNo} · {r.stage?.name}</span>
+                        {evidenceCount > 0 && <EvidenceBadge count={evidenceCount} />}
+                      </div>
+                      <div className="t-label mt-0.5" style={{ color: "var(--muted)" }}>
+                        Unit {r.htuNo || "General"} · Shift {r.shift} · By {r.inspector} · {fmtDateTime(r.inspectedAt)}
+                      </div>
+                      {r.notes && <div className="t-label text-[11px] mt-1 text-ink">{r.notes}</div>}
+                    </div>
+                    <ResultBadge result={r.overallResult} />
                   </div>
-                  <div className="t-label" style={{ color: "var(--muted)" }}>{htu.inspections.length} inspections - stages: {htu.inspections.map((i: any) => i.stage?.stageCode).join(", ")}</div>
-                </div>
-              ))}
-              {htus.length === 0 && <EmptyState message="No HTU records yet. HTUs are created when inspections are submitted." />}
+                );
+              })}
+              {inspections.length === 0 && <EmptyState message="No inspections recorded yet." />}
             </div>
           </TabsContent>
 
-          <TabsContent value="inspections" className="mt-5 max-h-96 overflow-y-auto scroll-fine">
-            <div className="space-y-2">
-              {inspections.map((r) => (
-                <div key={r.id} className="flex items-center justify-between rounded-lg p-2.5" style={{ backgroundColor: "var(--canvas-soft)" }}>
-                  <div>
-                    <div className="t-body-sm" style={{ color: "var(--ink)" }}>{r.recordNo} - {r.stage?.name}</div>
-                    <div className="t-label" style={{ color: "var(--muted)" }}>HTU {r.htuNo} - {r.shift} - {fmtDateTime(r.inspectedAt)}</div>
-                  </div>
-                  <ResultBadge result={r.overallResult} />
-                </div>
-              ))}
-              {inspections.length === 0 && <EmptyState message="No inspections recorded." />}
-            </div>
-          </TabsContent>
+          {/* === Defects & NCRs Tab === */}
           <TabsContent value="ncrs" className="mt-5 max-h-96 overflow-y-auto scroll-fine">
-            <div className="space-y-2">
+            <div className="space-y-3">
               {ncrs.map((n) => (
-                <div key={n.id} className="rounded-lg p-2.5" style={{ backgroundColor: "var(--canvas-soft)" }}>
+                <div key={n.id} className="rounded-xl p-3.5 border" style={{ backgroundColor: "var(--canvas-soft)", borderColor: "var(--hairline-soft)" }}>
                   <div className="flex items-center justify-between">
-                    <span className="t-body-sm font-medium" style={{ color: "var(--ink)" }}>{n.ncrNumber} - {n.defectCategory}</span>
+                    <span className="t-body-sm font-semibold" style={{ color: "var(--ink)" }}>{n.ncrNumber} · {n.defectCategory}</span>
                     <StatusBadge status={n.severity} size="xs" />
                   </div>
-                  <div className="t-body-sm mt-1" style={{ color: "var(--ink)" }}>{n.description}</div>
-                  <div className="t-label mt-0.5" style={{ color: "var(--muted)" }}>Status: {n.status} - Owner: {n.capaOwner || "-"}</div>
+                  <div className="t-body-sm mt-1.5" style={{ color: "var(--ink)" }}>{n.description}</div>
+                  {n.rootCause && (
+                    <div className="t-label text-[11px] mt-1.5 p-2 rounded bg-[var(--surface-card)]" style={{ border: "1px solid var(--hairline-soft)" }}>
+                      <span className="font-semibold text-ink">Root Cause:</span> {n.rootCause}
+                    </div>
+                  )}
+                  {n.correctiveAction && (
+                    <div className="t-label text-[11px] mt-1 p-2 rounded bg-[var(--surface-card)]" style={{ border: "1px solid var(--hairline-soft)" }}>
+                      <span className="font-semibold text-ink">CAPA:</span> {n.correctiveAction}
+                    </div>
+                  )}
+                  <div className="flex items-center justify-between mt-2 pt-2 border-t text-[11px]" style={{ borderColor: "var(--hairline-soft)", color: "var(--muted)" }}>
+                    <span>Status: <strong className="text-ink">{n.status}</strong></span>
+                    <span>Owner: {n.capaOwner || "Unassigned"}</span>
+                  </div>
                 </div>
               ))}
-              {ncrs.length === 0 && <EmptyState message="No NCRs." />}
+              {ncrs.length === 0 && <EmptyState message="Zero nonconformances. Quality gate clean." />}
             </div>
           </TabsContent>
+
+          {/* === Gates Tab === */}
           <TabsContent value="gates" className="mt-5">
             <QualityGatesTab woId={wo.id} plant={plant} />
           </TabsContent>
         </Tabs>
       </div>
+
+      {/* Unit Modal for Deep Inspection */}
+      <UnitInspectionModal unit={selectedUnit} open={!!selectedUnit} onClose={() => setSelectedUnit(null)} />
     </div>
   );
 }
@@ -5907,6 +5985,7 @@ function SalesOrdersModule({ plant }: { plant: string }) {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [expandedSO, setExpandedSO] = useState<string | null>(null);
+  const [selectedSO, setSelectedSO] = useState<any | null>(null);
 
   useEffect(() => {
     setLoading(true);
@@ -5969,9 +6048,9 @@ function SalesOrdersModule({ plant }: { plant: string }) {
               return (
                 <div key={so.srNo} className="rounded-xl overflow-hidden" style={{ border: "1px solid var(--hairline)", backgroundColor: "var(--surface-card)" }}>
                   {/* SO header row (clickable to expand) */}
-                  <button
+                  <div
                     onClick={() => setExpandedSO(isExpanded ? null : (so.soNumber || "NO-SO"))}
-                    className="w-full flex items-center gap-3 p-4 text-left transition-colors hover:bg-[var(--canvas-soft)]"
+                    className="w-full flex items-center gap-3 p-4 text-left transition-colors hover:bg-[var(--canvas-soft)] cursor-pointer"
                   >
                     <ChevronRight size={16} className="shrink-0 transition-transform" style={{ color: "var(--muted)", transform: isExpanded ? "rotate(90deg)" : "none" }} />
                     {/* SO Number + Date */}
@@ -6022,17 +6101,41 @@ function SalesOrdersModule({ plant }: { plant: string }) {
                       <StatusBadge status={so.status} size="xs" />
                     </div>
                     {/* WO count */}
-                    <div className="shrink-0 w-16 text-right">
+                    <div className="shrink-0 w-14 text-right">
                       <div className="t-label" style={{ color: "var(--muted)" }}>WOs</div>
                       <div className="t-body-sm t-num" style={{ color: "var(--primary)", fontWeight: 600 }}>{so.woCount}</div>
                     </div>
-                  </button>
+                    {/* End-to-End Report Action */}
+                    <div className="shrink-0">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSelectedSO(so);
+                        }}
+                        className="h-7 px-2.5 text-xs gap-1 font-medium hover:border-[var(--primary)] hover:text-[var(--primary)]"
+                      >
+                        <FileText size={12} /> Trace Report
+                      </Button>
+                    </div>
+                  </div>
 
                   {/* Expanded: linked WOs */}
                   {isExpanded && (
                     <div className="border-t" style={{ borderColor: "var(--hairline)", backgroundColor: "var(--canvas-soft)" }}>
                       <div className="p-4">
-                        <div className="t-label mb-2" style={{ color: "var(--muted)" }}>Linked Work Orders ({so.linkedWOs?.length || 0})</div>
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="t-label" style={{ color: "var(--muted)" }}>Linked Work Orders ({so.linkedWOs?.length || 0})</div>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setSelectedSO(so)}
+                            className="h-6 text-xs gap-1 t-label text-[var(--primary)]"
+                          >
+                            Open Full Order Dossier & Unit Ledger <ArrowUpRight size={12} />
+                          </Button>
+                        </div>
                         <div className="space-y-1.5">
                           {(so.linkedWOs || []).map((wo: any) => (
                             <div key={wo.id} className="flex items-center gap-3 p-2.5 rounded-lg" style={{ backgroundColor: "var(--surface-card)", border: "1px solid var(--hairline-soft)" }}>
@@ -6062,6 +6165,18 @@ function SalesOrdersModule({ plant }: { plant: string }) {
           </div>
         )}
       </div>
+
+      {/* Sales Order End-to-End Detail Sheet */}
+      <Sheet open={!!selectedSO} onOpenChange={(o) => { if (!o) setSelectedSO(null); }}>
+        <SheetContent side="right" className="w-full md:w-[65vw] lg:w-[60vw] max-w-[1100px] p-0 overflow-y-auto focus:outline-hidden" style={{ backgroundColor: "var(--surface-card)" }}>
+          {selectedSO && (
+            <SalesOrderDetail
+              so={selectedSO}
+              onClose={() => setSelectedSO(null)}
+            />
+          )}
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }
