@@ -94,7 +94,11 @@ export function TourGuide() {
   useEffect(() => {
     const seen = localStorage.getItem("tour-completed");
     if (!seen) {
-      const timer = setTimeout(() => startTour(), 3000);
+      const timer = setTimeout(() => {
+        if (!localStorage.getItem("tour-completed")) {
+          startTour();
+        }
+      }, 3000);
       return () => clearTimeout(timer);
     }
   }, []);

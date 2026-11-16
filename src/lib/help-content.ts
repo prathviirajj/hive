@@ -282,6 +282,116 @@ export const HELP_CONTENT: Record<string, HelpContent> = {
     rule: "Fulfilment = (Completed / Ordered) x 100. Pending = Ordered - Completed - Rejected.",
     roles: [],
   },
+
+  // ── Digital Inspections ──
+  "insp.workflow": {
+    id: "insp.workflow",
+    title: "Digital Inspection Workflow",
+    short: "Stage-wise digital inspection records tied to radiator HTU serial numbers.",
+    detail: "Inspectors record dimensional measurements, visual checks, pressure tests, and film thickness against engineering specifications at each production stage (S01 to S38). Real-time tolerance checking flags deviations immediately.",
+    why: "Guarantees zero-defect transformer radiators before delivery to power utility customers. Failures immediately trigger containment and nonconformance procedures.",
+    rule: "Every inspection requires a valid Work Order and auto-generated HTU serial. Any Critical-to-Quality (CTQ) failure automatically marks the unit Fail, raises an NCR, and halts downstream processing.",
+    states: ["Pass", "Fail", "Hold", "Pending"],
+    roles: ["QCInspector", "QualityManager", "ProcessEngineer", "ProductionSupervisor", "Admin"],
+  },
+
+  // ── Nonconformance & CAPA ──
+  "ncr.capa": {
+    id: "ncr.capa",
+    title: "Nonconformance & CAPA Management",
+    short: "Full 8D problem solving from defect containment to verified corrective action.",
+    detail: "An NCR is triggered automatically on inspection CTQ failure or raised manually when defective material is detected. Tracks immediate containment, Ishikawa / 5-Why root-cause investigation, corrective/preventive action implementation, and final effectiveness check.",
+    why: "ISO 9001:2015 and power grid customer audits require systematic defect isolation, root-cause elimination, and tamper-proof evidence preservation.",
+    rule: "Closure requires 4 verified milestones: immediate containment, root cause identification, approved CAPA owner action, and physical effectiveness verification.",
+    states: ["Open", "Contained", "Investigating", "CAPA-Open", "Effectiveness-Check", "Closed"],
+    roles: ["QualityManager", "QCInspector", "ProcessEngineer", "PlantManager", "Director", "Admin"],
+  },
+
+  // ── Process Flow & QC Parameters ──
+  "process.flow": {
+    id: "process.flow",
+    title: "Process Flow & QC Standards",
+    short: "Master 38-stage manufacturing routing from raw coil cutting to final dispatch.",
+    detail: "Interactive visualization of transformer radiator production across 5 operational zones: Component Fabrication (S01–S10), Core Assembly & Welding (S11–S13), Hydro & Pressure Testing (S14), Hot-Dip Galvanizing (S15–S19), and Paint & Dispatch (S20–S38).",
+    why: "Standardizes quality acceptance criteria, gauge requirements, and CTQ checkpoints across all shifts and operators.",
+    rule: "Each stage card displays mandatory SOP/QCI document numbers, inspection frequencies, and acceptance tolerances. Clicking Inspect opens a pre-configured digital inspection form.",
+    roles: [],
+  },
+
+  // ── Reports & Governance ──
+  "reports.overview": {
+    id: "reports.overview",
+    title: "Inspection & Compliance Reports",
+    short: "Traceable, audit-ready engineering test reports and customer inspection certificates.",
+    detail: "14 standardized report formats matching Hi-Tech Radiators controlled documentation headers, including Stage Inspection Logs, Dimension Inspection Sheets, Hydro Pressure Certificates, Zinc DFT Coating Reports, and Complete Radiator Test Certificates (TC).",
+    why: "Furnishes certified inspection records to transformer OEMs (ABB, Siemens, GE, BHEL) and ensures audit compliance for ISO 9001 and CE marking.",
+    rule: "All generated reports include plant code, document reference ID, inspector signature metadata, and can be printed or exported to PDF.",
+    roles: ["QualityManager", "PlantManager", "Director", "QCInspector", "Admin"],
+  },
+
+  // ── Organization Hierarchy ──
+  "org.hierarchy": {
+    id: "org.hierarchy",
+    title: "Organization & Authority Matrix",
+    short: "Reporting hierarchy, shift allocation, and role-based quality signing authority.",
+    detail: "Hierarchical breakdown of Khopoli Plant (K2) management and operational staff. Maps HR designations to QMS authority levels, delegation matrices, and stage-specific sign-off permissions.",
+    why: "Ensures segregation of duties between production output and quality clearance, maintaining strict compliance with corporate governance.",
+    rule: "Only active employees with assigned QMS roles can approve dispositions, sign off inspection gates, or authorize rework orders.",
+    roles: ["Admin", "Director", "PlantManager", "QualityManager"],
+  },
+
+  // ── Risk & FMEA ──
+  "fmea.risk": {
+    id: "fmea.risk",
+    title: "FMEA & Risk Intelligence",
+    short: "Process Failure Mode and Effects Analysis with automated RPN escalation.",
+    detail: "Evaluates failure modes across manufacturing operations. Calculates Risk Priority Number (RPN = Severity x Occurrence x Detection). Critical-severity items automatically escalate regardless of composite RPN score.",
+    why: "Prevents high-consequence radiator defects (such as oil leaks in the field or burst headers under pressure) through proactive engineering controls.",
+    rule: "Any failure mode with Severity ≥ 9 or RPN > 100 mandates an immediate preventive mitigation plan and dedicated QC Gate.",
+    roles: ["QualityManager", "ProcessEngineer", "PlantManager", "Director", "Admin"],
+  },
+
+  // ── Document Control ──
+  "doc.control": {
+    id: "doc.control",
+    title: "Controlled Document Management",
+    short: "Centralized repository for Quality Control Instructions (QCI) and Process Standards (PRO).",
+    detail: "Tracks controlled engineering drawings, welding procedure specifications (WPS), testing procedures, and customer-specific specifications with revision histories and effective release dates.",
+    why: "Eliminates shopfloor usage of obsolete drawings or unapproved welding parameters.",
+    rule: "Shopfloor inspections strictly reference the latest active revision number. Outdated revisions are archived and restricted from inspection forms.",
+    roles: [],
+  },
+
+  // ── Quality Analytics ──
+  "analytics.quality": {
+    id: "analytics.quality",
+    title: "Quality Analytics & Statistical Process Control",
+    short: "First Pass Yield (FPY), defect Pareto, and stage-level capability metrics.",
+    detail: "Real-time analytics engine calculating plant-wide FPY trends, scrap rates, cost of poor quality (COPQ), and stage-by-stage defect distribution.",
+    why: "Empowers quality leadership to identify chronic defect drivers and measure the financial return of corrective actions.",
+    rule: "FPY is calculated as Accepted Units / Total Inspected Units. Reworked units are tracked as second-pass completions.",
+    roles: ["QualityManager", "PlantManager", "Director", "DGM", "Admin"],
+  },
+
+  // ── Data Management ──
+  "data.import": {
+    id: "data.import",
+    title: "Data Import & Master Ingestion",
+    short: "Batch upload tool for work orders, sales orders, materials, and master standards.",
+    detail: "Upload CSV or Excel files with pre-commit dry-run validation. Checks schema constraints, foreign key references, and duplicate numbers before writing to the database.",
+    why: "Accelerates ERP data synchronization and reduces manual entry errors.",
+    rule: "Data is staged in preview mode; no database mutations occur until explicit commit confirmation.",
+    roles: ["Admin", "IT", "ProductionSupervisor"],
+  },
+  "data.export": {
+    id: "data.export",
+    title: "Data Export & Compliance Archives",
+    short: "Download authorized manufacturing and inspection datasets in CSV, Excel, or JSON.",
+    detail: "Generates complete data dumps filtered by plant, date range, and entity type for external auditor review, corporate reporting, or customer records.",
+    why: "Fulfills customer traceability requirements and supports offline statistical analysis in Minitab or Excel.",
+    rule: "All exports record an audit log with timestamp, requesting user ID, and export parameters.",
+    roles: ["Admin", "Director", "QualityManager", "PlantManager"],
+  },
 };
 
 // ============================================================

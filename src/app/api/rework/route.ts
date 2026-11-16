@@ -15,7 +15,18 @@ export async function GET(req: NextRequest) {
     orderBy: { createdAt: "desc" },
     take: limit,
     include: {
-      workOrder: { select: { woNumber: true, customer: true, itemName: true } },
+      workOrder: {
+        select: {
+          woNumber: true,
+          customer: true,
+          itemName: true,
+          inspections: {
+            select: { id: true, recordNo: true, evidencePath: true, htuNo: true, overallResult: true, notes: true, inspectedAt: true },
+            orderBy: { inspectedAt: "desc" },
+            take: 10,
+          },
+        },
+      },
       costLines: true,
       events: { orderBy: { timestamp: "desc" }, take: 10 },
     },

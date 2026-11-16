@@ -49,6 +49,10 @@ export async function POST(req: NextRequest) {
   const disposition = body.disposition || null; // "Rework" | "Scrap" | null
   const finalResult = disposition ? "Fail" : overallResult;
 
+  const evidencePath = body.evidenceFiles && Array.isArray(body.evidenceFiles) && body.evidenceFiles.length > 0
+    ? JSON.stringify(body.evidenceFiles)
+    : typeof body.evidencePath === "string" ? body.evidencePath : null;
+
   const rec = await db.inspectionRecord.create({
     data: {
       recordNo,
@@ -62,6 +66,7 @@ export async function POST(req: NextRequest) {
       ctqResult: ctqFail ? "Fail" : "Pass",
       measurements: JSON.stringify(measurements),
       defectsFound: finalResult !== "Pass" ? JSON.stringify(body.defectsFound || []) : null,
+      evidencePath,
       notes: body.notes || null,
     },
     include: { stage: true, workOrder: true },

@@ -14,12 +14,12 @@ import { getHelpContent, type HelpContent } from "@/lib/help-content";
  *   <HelpTrigger contentId="wo.unit-completion" />
  */
 
-export function HelpTrigger({ contentId, size = 16 }: { contentId: string; size?: number }) {
+export function HelpTrigger({ contentId, size = 16, inlineContent }: { contentId?: string; size?: number; inlineContent?: HelpContent }) {
   const [open, setOpen] = useState(false);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const popupRef = useRef<HTMLDivElement>(null);
   const [popupStyle, setPopupStyle] = useState<React.CSSProperties>({});
-  const content = getHelpContent(contentId);
+  const content = (contentId ? getHelpContent(contentId) : undefined) || inlineContent;
 
   // Update popup position when opened
   useLayoutEffect(() => {

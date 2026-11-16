@@ -73,6 +73,14 @@ import { HelpTrigger } from "@/components/qms/contextual-help";
 // useState already imported at top of file
 
 export function PageHeader({ eyebrow, title, subtitle, action, meta, info, helpId }: { eyebrow?: string; title: string; subtitle?: string; action?: ReactNode; meta?: ReactNode; info?: string; helpId?: string }) {
+  const fallbackContent = !helpId && info ? {
+    id: `hdr.${title.toLowerCase().replace(/\s+/g, "-")}`,
+    title: `${title} Overview`,
+    short: info,
+    detail: subtitle || info,
+    why: "Standardizes quality compliance, shopfloor execution, and verifiable traceability across all radiator production lines.",
+  } : undefined;
+
   return (
     <div className="px-5 md:px-10 pt-8 md:pt-12 pb-6 border-b" style={{ borderColor: "var(--hairline)" }}>
       <div className="max-w-5xl">
@@ -83,9 +91,10 @@ export function PageHeader({ eyebrow, title, subtitle, action, meta, info, helpI
           <div className="min-w-0 flex-1">
             <h1 className="t-display-md inline-flex items-center" style={{ color: "var(--ink)" }}>
               {title}
-              {/* Only one "?" icon: prefer helpId (structured content), fall back to info (simple popup) */}
-              {helpId && <HelpTrigger contentId={helpId} size={16} />}
-              {!helpId && info && <SimpleHelpPopup text={info} />}
+              {/* Single informative, visual help trigger — no duplicate short tooltips */}
+              {(helpId || fallbackContent) && (
+                <HelpTrigger contentId={helpId} inlineContent={fallbackContent} size={16} />
+              )}
             </h1>
             {subtitle && <p className="t-body-md mt-3" style={{ color: "var(--body)", maxWidth: "68ch" }}>{subtitle}</p>}
             {meta && <div className="mt-4 flex items-center gap-4 flex-wrap">{meta}</div>}
@@ -94,67 +103,6 @@ export function PageHeader({ eyebrow, title, subtitle, action, meta, info, helpI
         </div>
       </div>
     </div>
-  );
-}
-
-// Simple help popup for pages that only have `info` text (no structured helpId).
-// Uses the same popup mechanism as HelpTrigger but with inline content.
-function SimpleHelpPopup({ text }: { text: string }) {
-  const [open, setOpen] = useState(false);
-
-  return (
-    <>
-      <button
-        onClick={(e) => { e.stopPropagation(); setOpen(!open); }}
-        className="inline-flex items-center justify-center cursor-help"
-        aria-label="Help"
-        style={{
-          width: 20, height: 20,
-          color: "var(--muted)",
-          verticalAlign: "middle",
-          marginLeft: 4,
-          flexShrink: 0,
-          transition: "color 0.15s ease",
-          border: "none",
-          background: "transparent",
-        }}
-        onMouseEnter={(e) => { e.currentTarget.style.color = "var(--primary)"; }}
-        onMouseLeave={(e) => { e.currentTarget.style.color = "var(--muted)"; }}
-      >
-        <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-          <circle cx="12" cy="12" r="10" />
-          <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
-          <line x1="12" y1="17" x2="12.01" y2="17" />
-        </svg>
-      </button>
-      {open && (
-        <div
-          className="fixed z-[10003]"
-          style={{
-            top: "50%",
-            left: "50%",
-            transform: "translate(-50%, -50%)",
-            width: 360,
-            maxWidth: "calc(100vw - 40px)",
-            backgroundColor: "var(--surface-card)",
-            border: "1px solid var(--hairline)",
-            borderRadius: 6,
-            boxShadow: "0 8px 32px rgba(0,0,0,0.18)",
-          }}
-        >
-          <div className="flex items-center justify-between p-3 border-b" style={{ borderColor: "var(--hairline)" }}>
-            <span className="t-label" style={{ color: "var(--primary)", fontWeight: 600 }}>Help</span>
-            <button onClick={() => setOpen(false)} style={{ color: "var(--muted)", border: "none", background: "transparent" }}>
-              <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-            </button>
-          </div>
-          <div className="p-3">
-            <p style={{ fontSize: 12, color: "var(--body)", lineHeight: 1.55 }}>{text}</p>
-          </div>
-        </div>
-      )}
-      {open && <div className="fixed inset-0 z-[10002]" style={{ backgroundColor: "rgba(0,0,0,0.2)" }} onClick={() => setOpen(false)} />}
-    </>
   );
 }
 
