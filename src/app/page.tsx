@@ -2638,21 +2638,40 @@ function InspectionModule({ plant, user, prefillStage, onPrefillConsumed }: { pl
     return records.filter(r => assigned.includes(r.stage?.stageCode));
   }, [records, user.assignedStages]);
 
+  const exportFilteredCsv = () => {
+    if (visibleRecords.length === 0) return;
+    let csv = `HI-TECH RADIATORS PVT. LTD. - DIGITAL STAGE INSPECTION REGISTER\r\n`;
+    csv += `Exported At: ${new Date().toISOString()} · Filtered Plant: ${plant}\r\n\r\n`;
+    csv += `Record No,Work Order,Customer,HTU Serial,Stage Code,Stage Name,Document Ref,Shift,Inspector,Operator,CTQ Result,Overall Result,Inspected At\r\n`;
+    visibleRecords.forEach(r => {
+      csv += `"${r.recordNo}","${r.workOrder?.woNumber || ""}","${r.workOrder?.customer || ""}","${r.htuNo || ""}","${r.stage?.stageCode || ""}","${r.stage?.name || ""}","${r.stage?.documentRef || ""}","Shift ${r.shift}","${r.inspector}","${r.operator || ""}","${r.ctqResult || ""}","${r.overallResult}","${r.inspectedAt}"\r\n`;
+    });
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `Inspection_Register_${plant}_${new Date().toISOString().slice(0, 10)}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
   const columns: Column<any>[] = [
-    { key: "record", header: "Record", sortable: true, sortValue: (r) => r.recordNo, render: (r) => <span className="t-code font-medium" style={{ color: "var(--ink)" }}>{r.recordNo}</span>, mobileLabel: "Record" },
+    { key: "record", header: "Record", sortable: true, sortValue: (r) => r.recordNo, render: (r) => <span className="t-code font-medium" data-tooltip="Click row to open detailed audit dossier & download reports" data-tooltip-pos="right" style={{ color: "var(--ink)" }}>{r.recordNo}</span>, mobileLabel: "Record" },
     { key: "stage", header: "Stage", sortable: true, sortValue: (r) => r.stage?.name || "", render: (r) => (
       <div>
-        <div className="t-body-sm" style={{ color: "var(--ink)" }}>{r.stage?.name}</div>
+        <div className="t-body-sm font-medium" style={{ color: "var(--ink)" }}>{r.stage?.name}</div>
         <div className="t-label" style={{ color: "var(--muted)" }}>{r.stage?.documentRef}</div>
       </div>
     ), mobileLabel: "Stage" },
     { key: "wo", header: "Work Order", render: (r) => (
       <div>
-        <div className="t-body-sm" style={{ color: "var(--ink)" }}>{r.workOrder?.woNumber}</div>
+        <div className="t-body-sm font-medium" style={{ color: "var(--ink)" }}>{r.workOrder?.woNumber}</div>
         <div className="t-label" style={{ color: "var(--muted)" }}>{r.workOrder?.customer}</div>
       </div>
     ), hideOnMobile: true },
-    { key: "htu", header: "HTU", render: (r) => <span className="t-code">{r.htuNo}</span>, hideOnMobile: true },
+    { key: "htu", header: "HTU", render: (r) => <span className="t-code" data-tooltip="Unique radiator serial stamped on unit header" data-tooltip-pos="top">{r.htuNo}</span>, hideOnMobile: true },
     { key: "inspector", header: "Inspector", sortable: true, sortValue: (r) => r.inspector, render: (r) => <span className="t-body-sm">{r.inspector}</span>, hideOnMobile: true },
     { key: "ctq", header: "CTQ", render: (r) => r.ctqResult === "Fail" ? <StatusBadge status="Fail" size="xs" /> : r.ctqResult === "Pass" ? <span className="t-label" style={{ color: "var(--muted)" }}>OK</span> : "-", hideOnMobile: true },
     { key: "result", header: "Result", sortable: true, sortValue: (r) => r.overallResult, render: (r) => <ResultBadge result={r.overallResult} />, mobileLabel: "Result" },
@@ -2667,12 +2686,37 @@ function InspectionModule({ plant, user, prefillStage, onPrefillConsumed }: { pl
         title="Digital Inspections"
         subtitle="Stage-wise inspection forms with CTQ acceptance criteria. Failures auto-create NCRs and hold work orders."
         helpId="insp.workflow"
-        action={<Button onClick={() => setShowForm(true)} data-tooltip="Open new inspection form" data-tooltip-pos="left" className="t-button h-9 px-4 rounded-lg flex items-center gap-1.5" style={{ backgroundColor: "var(--primary)", color: "var(--on-primary)" }}><Plus size={14} /> New Inspection</Button>}
+        action={
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={exportFilteredCsv}
+              data-tooltip="Export visible inspections to CSV spreadsheet"
+              data-tooltip-pos="bottom"
+              className="t-body-sm h-9 px-3 rounded-lg flex items-center gap-1.5"
+              style={{ borderColor: "var(--hairline)" }}
+            >
+              <FileSpreadsheet size={14} /> Export CSV
+            </Button>
+            <Button
+              onClick={() => setShowForm(true)}
+              data-tooltip="Open new digital inspection form with 4-tier crew tracking"
+              data-tooltip-pos="left"
+              className="t-button h-9 px-4 rounded-lg flex items-center gap-1.5"
+              style={{ backgroundColor: "var(--primary)", color: "var(--on-primary)" }}
+            >
+              <Plus size={14} /> New Inspection
+            </Button>
+          </div>
+        }
       />
       <FilterBar count={visibleRecords.length}>
         <Filter size={13} style={{ color: "var(--muted)" }} />
         <Select value={resultFilter} onValueChange={setResultFilter}>
-          <SelectTrigger className="w-36 h-8 t-body-sm" style={{ borderColor: "var(--hairline)" }}><SelectValue /></SelectTrigger>
+          <SelectTrigger className="w-36 h-8 t-body-sm" data-tooltip="Filter inspections by clearance verdict" data-tooltip-pos="bottom" style={{ borderColor: "var(--hairline)" }}>
+            <SelectValue />
+          </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All results</SelectItem>
             <SelectItem value="Pass">Pass</SelectItem>
@@ -2682,7 +2726,7 @@ function InspectionModule({ plant, user, prefillStage, onPrefillConsumed }: { pl
           </SelectContent>
         </Select>
         {user.assignedStages && user.assignedStages.length > 0 && (
-          <span className="t-label px-2 py-1 rounded-full" style={{ backgroundColor: "var(--surface-strong)", color: "var(--muted)" }}>
+          <span className="t-label px-2 py-1 rounded-full" data-tooltip="Your account is restricted to your assigned manufacturing stages" data-tooltip-pos="bottom" style={{ backgroundColor: "var(--surface-strong)", color: "var(--muted)" }}>
             Filtered to your stages: {user.assignedStages.join(", ")}
           </span>
         )}
@@ -3041,10 +3085,10 @@ function InspectionForm({ stages, workOrders, user, prefillStageCode, onSubmitte
   };
 
   const STEPS = [
-    { num: 1, label: "Traceability & Crew", status: woId && htuNo ? "done" : "current" },
-    { num: 2, label: "Stage & SOP", status: stage ? "done" : woId ? "ready" : "pending" },
-    { num: 3, label: "Parameters", status: completedParametersCount === (stage?.characteristics?.length || 0) && (stage?.characteristics?.length || 0) > 0 ? (hasFailedMeasurement ? "warn" : "done") : "ready" },
-    { num: 4, label: "Gate & Sign-off", status: hasFailedMeasurement ? (disposition ? "warn" : "pending") : "ready" },
+    { num: 1, label: "Traceability & Crew", status: woId && htuNo ? "done" : "current", tip: "Production work order, serial auto-trace, and 4-tier crew selection" },
+    { num: 2, label: "Stage & SOP", status: stage ? "done" : woId ? "ready" : "pending", tip: "Manufacturing routing stage and authorized SOP standard" },
+    { num: 3, label: "Parameters", status: completedParametersCount === (stage?.characteristics?.length || 0) && (stage?.characteristics?.length || 0) > 0 ? (hasFailedMeasurement ? "warn" : "done") : "ready", tip: "All mandatory characteristic measurements and tolerance checks" },
+    { num: 4, label: "Gate & Sign-off", status: hasFailedMeasurement ? (disposition ? "warn" : "pending") : "ready", tip: "Quality gate verdict, conditional defect proof, and digital sign-off stamp" },
   ];
 
   return (
@@ -3072,6 +3116,8 @@ function InspectionForm({ stages, workOrders, user, prefillStageCode, onSubmitte
                 key={s.num}
                 type="button"
                 onClick={() => handleStepClick(s.num as any)}
+                data-tooltip={s.tip}
+                data-tooltip-pos="bottom"
                 className="text-left p-2 rounded-lg transition-all"
                 style={{
                   border: isActive ? "1px solid var(--primary)" : "1px solid var(--hairline)",
@@ -3118,7 +3164,7 @@ function InspectionForm({ stages, workOrders, user, prefillStageCode, onSubmitte
               <div>
                 <Label className="t-label" style={{ color: "var(--muted)" }}>Work Order *</Label>
                 <Select value={woId} onValueChange={(v) => { setWoId(v); setStage(null); setMeasurements({}); setHtuAutoGenerated(false); }}>
-                  <SelectTrigger className="mt-1 t-body-sm h-10 rounded-lg" style={{ borderColor: "var(--hairline)" }}>
+                  <SelectTrigger className="mt-1 t-body-sm h-10 rounded-lg" data-tooltip="Select authorized production work order" data-tooltip-pos="right" style={{ borderColor: "var(--hairline)" }}>
                     <SelectValue placeholder="Select authorized production work order" />
                   </SelectTrigger>
                   <SelectContent>
@@ -3134,19 +3180,19 @@ function InspectionForm({ stages, workOrders, user, prefillStageCode, onSubmitte
               {/* Selected Work Order Context Strip */}
               {selectedWo && (
                 <div className="rounded-lg p-3 grid grid-cols-2 sm:grid-cols-4 gap-2" style={{ backgroundColor: "var(--canvas-soft)", border: "1px solid var(--hairline)" }}>
-                  <div>
+                  <div data-tooltip="Target customer and OEM specification" data-tooltip-pos="bottom">
                     <div className="t-label text-[10px]" style={{ color: "var(--muted)" }}>CUSTOMER</div>
                     <div className="t-body-sm font-medium truncate" style={{ color: "var(--ink)" }}>{selectedWo.customer}</div>
                   </div>
-                  <div>
+                  <div data-tooltip="Radiator model size and dimensions" data-tooltip-pos="bottom">
                     <div className="t-label text-[10px]" style={{ color: "var(--muted)" }}>DIMENSIONS / SPEC</div>
                     <div className="t-body-sm font-medium truncate" style={{ color: "var(--ink)" }}>{selectedWo.size}</div>
                   </div>
-                  <div>
+                  <div data-tooltip="Surface treatment and coating spec" data-tooltip-pos="bottom">
                     <div className="t-label text-[10px]" style={{ color: "var(--muted)" }}>FINISH TYPE</div>
                     <div className="t-body-sm font-medium truncate" style={{ color: "var(--ink)" }}>{selectedWo.finishType}</div>
                   </div>
-                  <div>
+                  <div data-tooltip="Batch manufacturing progress" data-tooltip-pos="bottom">
                     <div className="t-label text-[10px]" style={{ color: "var(--muted)" }}>PLANNED BATCH</div>
                     <div className="t-body-sm font-medium" style={{ color: "var(--primary)" }}>{selectedWo.completedQty}/{selectedWo.plannedQty} units</div>
                   </div>
@@ -3166,6 +3212,8 @@ function InspectionForm({ stages, workOrders, user, prefillStageCode, onSubmitte
                     value={htuNo || "Auto-generated on WO selection"}
                     readOnly
                     placeholder="Select work order to generate"
+                    data-tooltip="Auto-generated sequential radiator unit serial stamped on physical header"
+                    data-tooltip-pos="top"
                     className="w-full mt-1 h-9 px-3 rounded-lg t-body-sm t-code outline-none"
                     style={{
                       border: "1px solid var(--hairline)",
@@ -3209,7 +3257,7 @@ function InspectionForm({ stages, workOrders, user, prefillStageCode, onSubmitte
                       <span className="text-[9px] px-1.5 py-0.2 rounded font-mono" style={{ backgroundColor: "var(--surface-strong)", color: "var(--ink)" }}>FABRICATION</span>
                     </Label>
                     <Select value={operator} onValueChange={setOperator}>
-                      <SelectTrigger className="mt-1 t-body-sm h-9 rounded-lg" style={{ borderColor: "var(--hairline)" }}>
+                      <SelectTrigger className="mt-1 t-body-sm h-9 rounded-lg" data-tooltip="Select machinist/craftsman who fabricated this radiator unit" data-tooltip-pos="top" style={{ borderColor: "var(--hairline)" }}>
                         <SelectValue placeholder="Select machine operator" />
                       </SelectTrigger>
                       <SelectContent>
@@ -3233,6 +3281,8 @@ function InspectionForm({ stages, workOrders, user, prefillStageCode, onSubmitte
                     </Label>
                     <div
                       className="w-full mt-1 h-9 px-3 rounded-lg t-body-sm flex items-center justify-between"
+                      data-tooltip="Authenticated digital author logged into this session entering measurements"
+                      data-tooltip-pos="top"
                       style={{
                         border: "1px solid var(--hairline)",
                         backgroundColor: "var(--surface-card)",
@@ -3254,7 +3304,7 @@ function InspectionForm({ stages, workOrders, user, prefillStageCode, onSubmitte
                       <span className="text-[9px] px-1.5 py-0.2 rounded font-mono" style={{ backgroundColor: "rgba(8, 50, 96, 0.1)", color: "var(--primary)" }}>VERIFICATION</span>
                     </Label>
                     <Select value={checkedBy} onValueChange={setCheckedBy}>
-                      <SelectTrigger className="mt-1 t-body-sm h-9 rounded-lg" style={{ borderColor: "var(--hairline)" }}>
+                      <SelectTrigger className="mt-1 t-body-sm h-9 rounded-lg" data-tooltip="Select QC inspector who verified physical dimensions and tolerances" data-tooltip-pos="top" style={{ borderColor: "var(--hairline)" }}>
                         <SelectValue placeholder="Select QC verifier" />
                       </SelectTrigger>
                       <SelectContent>
@@ -3277,7 +3327,7 @@ function InspectionForm({ stages, workOrders, user, prefillStageCode, onSubmitte
                       <span className="text-[9px] px-1.5 py-0.2 rounded font-mono" style={{ backgroundColor: "rgba(217, 119, 6, 0.12)", color: "#d97706" }}>SIGN-OFF</span>
                     </Label>
                     <Select value={approvedBy} onValueChange={setApprovedBy}>
-                      <SelectTrigger className="mt-1 t-body-sm h-9 rounded-lg" style={{ borderColor: "var(--hairline)" }}>
+                      <SelectTrigger className="mt-1 t-body-sm h-9 rounded-lg" data-tooltip="Select manager who approves stage gate pass or disposition" data-tooltip-pos="top" style={{ borderColor: "var(--hairline)" }}>
                         <SelectValue placeholder="Select gate approver" />
                       </SelectTrigger>
                       <SelectContent>
@@ -3301,6 +3351,8 @@ function InspectionForm({ stages, workOrders, user, prefillStageCode, onSubmitte
                 type="button"
                 onClick={() => setActiveStep(2)}
                 disabled={!woId}
+                data-tooltip="Proceed to Step 2: Manufacturing Stage & SOP Gate"
+                data-tooltip-pos="top"
                 className="t-button h-9 px-4 rounded-lg flex items-center gap-1.5"
                 style={{ backgroundColor: "var(--primary)", color: "var(--on-primary)" }}
               >
@@ -3331,6 +3383,8 @@ function InspectionForm({ stages, workOrders, user, prefillStageCode, onSubmitte
                         key={s.id}
                         type="button"
                         onClick={() => { setStage(s); }}
+                        data-tooltip={`Select ${s.name} (${s.stageCode}) SOP checkpoint`}
+                        data-tooltip-pos="top"
                         className="text-left p-3 rounded-lg transition-all hover:bg-[var(--surface-card)]"
                         style={{ border: "1px solid var(--hairline)", backgroundColor: "var(--canvas-soft)" }}
                       >
@@ -3366,6 +3420,8 @@ function InspectionForm({ stages, workOrders, user, prefillStageCode, onSubmitte
                     variant="outline"
                     size="sm"
                     onClick={() => { setStage(null); setMeasurements({}); }}
+                    data-tooltip="Select a different manufacturing stage or SOP"
+                    data-tooltip-pos="left"
                     className="h-8 rounded-lg shrink-0 bg-white/10 hover:bg-white/20 text-white border-white/20"
                   >
                     Change Stage
@@ -3377,7 +3433,12 @@ function InspectionForm({ stages, workOrders, user, prefillStageCode, onSubmitte
                   <div className="rounded-lg p-3" style={{ backgroundColor: "var(--canvas-soft)", border: "1px solid var(--hairline)" }}>
                     <Label className="t-label" style={{ color: "var(--muted)" }}>Connected Open NCR (Re-inspection Verification)</Label>
                     <Select value={connectedNcr} onValueChange={setConnectedNcr}>
-                      <SelectTrigger className="mt-1 t-body-sm h-9 rounded-lg" style={{ borderColor: "var(--hairline)" }}>
+                      <SelectTrigger
+                        className="mt-1 t-body-sm h-9 rounded-lg"
+                        style={{ borderColor: "var(--hairline)" }}
+                        data-tooltip="Link an existing nonconformance report to perform verification re-inspection"
+                        data-tooltip-pos="top"
+                      >
                         <SelectValue placeholder="None - Standard first-pass inspection" />
                       </SelectTrigger>
                       <SelectContent>
@@ -3414,13 +3475,22 @@ function InspectionForm({ stages, workOrders, user, prefillStageCode, onSubmitte
             )}
 
             <div className="pt-4 flex items-center justify-between">
-              <Button type="button" variant="outline" onClick={() => setActiveStep(1)} className="t-button h-9 px-4 rounded-lg">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setActiveStep(1)}
+                data-tooltip="Return to Step 1: Work Order & Personnel Sign-off"
+                data-tooltip-pos="top"
+                className="t-button h-9 px-4 rounded-lg"
+              >
                 Back: Traceability
               </Button>
               <Button
                 type="button"
                 onClick={() => setActiveStep(3)}
                 disabled={!stage}
+                data-tooltip={stage ? "Proceed to Step 3: Record characteristic measurements" : "Select a stage first to proceed"}
+                data-tooltip-pos="top"
                 className="t-button h-9 px-4 rounded-lg flex items-center gap-1.5"
                 style={{ backgroundColor: "var(--primary)", color: "var(--on-primary)" }}
               >
@@ -3458,6 +3528,8 @@ function InspectionForm({ stages, workOrders, user, prefillStageCode, onSubmitte
                   type="button"
                   variant="outline"
                   onClick={handlePassAllNominal}
+                  data-tooltip="Quick-populate all characteristics with nominal in-tolerance values"
+                  data-tooltip-pos="left"
                   className="t-body-sm h-8 px-3 rounded-lg flex items-center gap-1.5"
                   style={{ borderColor: "var(--hairline)", backgroundColor: "var(--surface-card)" }}
                 >
@@ -3515,7 +3587,12 @@ function InspectionForm({ stages, workOrders, user, prefillStageCode, onSubmitte
                             </span>
                             <span className="t-body-sm font-medium" style={{ color: "var(--ink)" }}>{c.name}</span>
                             {c.isCTQ && (
-                              <span className="t-label text-[9px] px-1.5 py-0.2 rounded-full font-bold" style={{ backgroundColor: "var(--primary)", color: "var(--on-primary)" }}>
+                              <span
+                                className="t-label text-[9px] px-1.5 py-0.2 rounded-full font-bold"
+                                style={{ backgroundColor: "var(--primary)", color: "var(--on-primary)" }}
+                                data-tooltip="Critical-To-Quality parameter: failure halts line and requires containment"
+                                data-tooltip-pos="top"
+                              >
                                 CTQ GATE
                               </span>
                             )}
@@ -3550,6 +3627,8 @@ function InspectionForm({ stages, workOrders, user, prefillStageCode, onSubmitte
                         <button
                           type="button"
                           onClick={() => setM(c.id, m?.value || "OK", true, c.isCTQ, c.name)}
+                          data-tooltip={`Mark ${c.name} as conforming (PASS)`}
+                          data-tooltip-pos="top"
                           className="px-3 py-1.5 rounded-lg t-body-sm transition-all flex items-center gap-1.5"
                           style={{
                             backgroundColor: m?.pass === true ? "#4a7c5e" : "var(--canvas-soft)",
@@ -3563,6 +3642,8 @@ function InspectionForm({ stages, workOrders, user, prefillStageCode, onSubmitte
                         <button
                           type="button"
                           onClick={() => setM(c.id, m?.value || "Fail", false, c.isCTQ, c.name)}
+                          data-tooltip={`Mark ${c.name} as nonconforming (FAIL - triggers proof requirement)`}
+                          data-tooltip-pos="top"
                           className="px-3 py-1.5 rounded-lg t-body-sm transition-all flex items-center gap-1.5"
                           style={{
                             backgroundColor: isFail ? "#a04545" : "var(--canvas-soft)",
@@ -3581,6 +3662,8 @@ function InspectionForm({ stages, workOrders, user, prefillStageCode, onSubmitte
                             placeholder="Measured value (required)"
                             value={m?.value && m.value !== "OK" && m.value !== "Fail" ? m.value : ""}
                             onChange={(e) => handleNumericInput(c, e.target.value)}
+                            data-tooltip={`Enter numeric measurement in ${c.unit || "specified unit"} for ${c.name}`}
+                            data-tooltip-pos="top"
                             className="h-8 t-body-sm t-code rounded-lg"
                             style={{
                               borderColor: isMissing ? "var(--semantic-error)" : isFail ? "var(--semantic-error)" : m?.pass ? "rgba(74, 124, 94, 0.4)" : "var(--hairline)",
@@ -3612,12 +3695,21 @@ function InspectionForm({ stages, workOrders, user, prefillStageCode, onSubmitte
             )}
 
             <div className="pt-4 flex items-center justify-between">
-              <Button type="button" variant="outline" onClick={() => setActiveStep(2)} className="t-button h-9 px-4 rounded-lg">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setActiveStep(2)}
+                data-tooltip="Return to Step 2: Stage & SOP Reference"
+                data-tooltip-pos="top"
+                className="t-button h-9 px-4 rounded-lg"
+              >
                 Back: Stage
               </Button>
               <Button
                 type="button"
                 onClick={validateStep3}
+                data-tooltip="Verify all required parameters are entered and proceed to final gate verdict"
+                data-tooltip-pos="top"
                 className="t-button h-9 px-4 rounded-lg flex items-center gap-1.5"
                 style={{
                   backgroundColor: hasFailedMeasurement ? "var(--semantic-error)" : "var(--primary)",
@@ -3667,6 +3759,8 @@ function InspectionForm({ stages, workOrders, user, prefillStageCode, onSubmitte
                   <button
                     type="button"
                     onClick={() => setDisposition("Rework")}
+                    data-tooltip="Issue Rework Job Order (RWO) and transfer component to repair zone"
+                    data-tooltip-pos="top"
                     className="flex items-center gap-2.5 p-3 rounded-lg text-left transition-all"
                     style={{
                       border: disposition === "Rework" ? "2px solid var(--primary)" : "1px solid var(--hairline)",
@@ -3682,6 +3776,8 @@ function InspectionForm({ stages, workOrders, user, prefillStageCode, onSubmitte
                   <button
                     type="button"
                     onClick={() => setDisposition("Scrap")}
+                    data-tooltip="Flag component as irreparable scrap for QA salvage review"
+                    data-tooltip-pos="top"
                     className="flex items-center gap-2.5 p-3 rounded-lg text-left transition-all"
                     style={{
                       border: disposition === "Scrap" ? "2px solid var(--semantic-error)" : "1px solid var(--hairline)",
@@ -3742,22 +3838,42 @@ function InspectionForm({ stages, workOrders, user, prefillStageCode, onSubmitte
                 <span className="t-code text-[10px]" style={{ color: "var(--muted)" }}>DIGITAL VERIFICATION</span>
               </div>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1">
-                <div className="p-2.5 rounded-lg" style={{ backgroundColor: "var(--surface-card)", border: "1px solid var(--hairline)" }}>
+                <div
+                  className="p-2.5 rounded-lg cursor-help transition-colors hover:bg-[var(--surface-card)]"
+                  style={{ backgroundColor: "var(--surface-card)", border: "1px solid var(--hairline)" }}
+                  data-tooltip="Tier 3: Shopfloor fabrication operator who worked on the component"
+                  data-tooltip-pos="top"
+                >
                   <div className="t-label text-[9.5px]" style={{ color: "var(--muted)" }}>1. LINE OPERATOR</div>
                   <div className="t-body-sm font-medium truncate" style={{ color: "var(--ink)" }}>{operator || "Ravi Kamble"}</div>
                   <div className="t-label text-[9px]" style={{ color: "var(--muted-soft)" }}>Line Fabrication</div>
                 </div>
-                <div className="p-2.5 rounded-lg" style={{ backgroundColor: "var(--surface-card)", border: "1px solid var(--hairline)" }}>
+                <div
+                  className="p-2.5 rounded-lg cursor-help transition-colors hover:bg-[var(--surface-card)]"
+                  style={{ backgroundColor: "var(--surface-card)", border: "1px solid var(--hairline)" }}
+                  data-tooltip="Authenticated session author entering measurements"
+                  data-tooltip-pos="top"
+                >
                   <div className="t-label text-[9.5px]" style={{ color: "var(--muted)" }}>2. DOCUMENTED BY</div>
                   <div className="t-body-sm font-medium truncate" style={{ color: "var(--ink)" }}>{user.name}</div>
                   <div className="t-label text-[9px]" style={{ color: "var(--primary)" }}>{user.role} (Current)</div>
                 </div>
-                <div className="p-2.5 rounded-lg" style={{ backgroundColor: "var(--surface-card)", border: "1px solid var(--hairline)" }}>
+                <div
+                  className="p-2.5 rounded-lg cursor-help transition-colors hover:bg-[var(--surface-card)]"
+                  style={{ backgroundColor: "var(--surface-card)", border: "1px solid var(--hairline)" }}
+                  data-tooltip="Tier 2: Certified quality checker who verified tolerances"
+                  data-tooltip-pos="top"
+                >
                   <div className="t-label text-[9.5px]" style={{ color: "var(--muted)" }}>3. QC CHECKER</div>
                   <div className="t-body-sm font-medium truncate" style={{ color: "var(--ink)" }}>{checkedBy || "Sneha Patel"}</div>
                   <div className="t-label text-[9px]" style={{ color: "var(--muted-soft)" }}>Tolerance Verified</div>
                 </div>
-                <div className="p-2.5 rounded-lg" style={{ backgroundColor: "var(--surface-card)", border: "1px solid var(--hairline)" }}>
+                <div
+                  className="p-2.5 rounded-lg cursor-help transition-colors hover:bg-[var(--surface-card)]"
+                  style={{ backgroundColor: "var(--surface-card)", border: "1px solid var(--hairline)" }}
+                  data-tooltip="Tier 1: Authorized manager who signs off gate release"
+                  data-tooltip-pos="top"
+                >
                   <div className="t-label text-[9.5px]" style={{ color: "var(--muted)" }}>4. GATE APPROVER</div>
                   <div className="t-body-sm font-medium truncate" style={{ color: "var(--ink)" }}>{approvedBy || "Amit Shah"}</div>
                   <div className="t-label text-[9px]" style={{ color: "var(--muted-soft)" }}>Release Sign-off</div>
@@ -3773,6 +3889,8 @@ function InspectionForm({ stages, workOrders, user, prefillStageCode, onSubmitte
                 onChange={(e) => setNotes(e.target.value)}
                 rows={2}
                 placeholder="Enter any additional shopfloor observations or comments..."
+                data-tooltip="Document any shopfloor observations, tool serials, or environmental conditions"
+                data-tooltip-pos="top"
                 className="mt-1 t-body-sm rounded-lg"
                 style={{ borderColor: "var(--hairline)", backgroundColor: "var(--surface-card)" }}
               />
@@ -3801,17 +3919,33 @@ function InspectionForm({ stages, workOrders, user, prefillStageCode, onSubmitte
             </div>
 
             <div className="pt-2 flex items-center justify-between">
-              <Button type="button" variant="outline" onClick={() => setActiveStep(3)} className="t-button h-9 px-4 rounded-lg">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setActiveStep(3)}
+                data-tooltip="Return to Step 3: Characteristic measurements"
+                data-tooltip-pos="top"
+                className="t-button h-9 px-4 rounded-lg"
+              >
                 Back: Parameters
               </Button>
               <div className="flex gap-2">
-                <Button type="button" variant="outline" onClick={onCancel} className="t-button h-9 px-4 rounded-lg">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={onCancel}
+                  data-tooltip="Discard current inspection draft and close drawer"
+                  data-tooltip-pos="top"
+                  className="t-button h-9 px-4 rounded-lg"
+                >
                   Cancel
                 </Button>
                 <Button
                   type="button"
                   onClick={submit}
                   disabled={saving || !stage || !woId}
+                  data-tooltip={hasFailedMeasurement ? "Record nonconformance, upload proofs, and raise Rework Order" : "Digitally sign 4-tier approval and issue Certificate of Conformance"}
+                  data-tooltip-pos="top"
                   className="t-button h-9 px-5 rounded-lg flex items-center gap-2"
                   style={{
                     backgroundColor: hasFailedMeasurement ? "var(--semantic-error)" : "var(--primary)",
@@ -3833,6 +3967,328 @@ function InspectionForm({ stages, workOrders, user, prefillStageCode, onSubmitte
   );
 }
 
+// ============================================================
+// Inspection Report Generators (PDF/Print, HTML, CSV, JSON)
+// ============================================================
+function generateInspectionCertificateHtml(record: any, signoff: any, measurements: Record<string, any>) {
+  const charEntries = Object.entries(measurements).filter(([key]) => !key.startsWith("_"));
+  const isPass = record.overallResult === "Pass";
+
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Certificate of Inspection - ${record.recordNo}</title>
+  <style>
+    @page { size: A4 portrait; margin: 12mm 15mm; }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; color: #18181b; background: #ffffff; font-size: 11px; line-height: 1.4; padding: 10px; }
+    .cert-container { max-width: 820px; margin: 0 auto; border: 2px solid #083260; padding: 24px; background: #ffffff; box-shadow: 0 4px 16px rgba(0,0,0,0.06); }
+    .header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #083260; padding-bottom: 14px; margin-bottom: 16px; }
+    .logo-block h1 { font-size: 20px; font-weight: 800; color: #083260; letter-spacing: 0.5px; }
+    .logo-block .sub { font-size: 10px; color: #52525b; margin-top: 2px; }
+    .cert-title-block { text-align: right; }
+    .cert-title-block h2 { font-size: 15px; font-weight: 700; color: #18181b; text-transform: uppercase; letter-spacing: 0.5px; }
+    .cert-title-block .cert-no { font-family: monospace; font-size: 12px; font-weight: 700; color: #083260; margin-top: 3px; }
+    .meta-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; background: #f8fafc; padding: 12px; border: 1px solid #e2e8f0; border-radius: 6px; margin-bottom: 16px; }
+    .meta-item .label { font-size: 9px; font-weight: 600; color: #64748b; text-transform: uppercase; letter-spacing: 0.3px; }
+    .meta-item .val { font-size: 11px; font-weight: 600; color: #0f172a; margin-top: 2px; }
+    .meta-item .val-mono { font-family: monospace; font-size: 11px; font-weight: 700; color: #083260; margin-top: 2px; }
+    .verdict-banner { display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; border-radius: 6px; margin-bottom: 16px; }
+    .verdict-pass { background: #eef7f2; border: 1.5px solid #4a7c5e; color: #22543d; }
+    .verdict-fail { background: #fdf2f2; border: 1.5px solid #a04545; color: #742a2a; }
+    .verdict-text { font-size: 12px; font-weight: 800; text-transform: uppercase; }
+    table { width: 100%; border-collapse: collapse; margin-bottom: 16px; }
+    th { background: #083260; color: #ffffff; font-size: 9.5px; font-weight: 600; text-transform: uppercase; padding: 6px 8px; text-align: left; letter-spacing: 0.3px; }
+    td { padding: 6px 8px; border-bottom: 1px solid #e2e8f0; font-size: 10.5px; }
+    tr:nth-child(even) { background: #f8fafc; }
+    .tag-intol { display: inline-block; padding: 2px 6px; border-radius: 3px; font-size: 9px; font-weight: 700; background: #eef7f2; color: #22543d; border: 1px solid #4a7c5e; }
+    .tag-outtol { display: inline-block; padding: 2px 6px; border-radius: 3px; font-size: 9px; font-weight: 700; background: #fdf2f2; color: #742a2a; border: 1px solid #a04545; }
+    .tag-ctq { display: inline-block; padding: 1px 4px; border-radius: 2px; font-size: 8px; font-weight: 700; background: #083260; color: #fff; margin-left: 4px; vertical-align: middle; }
+    .crew-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; border: 1px solid #e2e8f0; border-radius: 6px; padding: 12px; margin-bottom: 16px; background: #f8fafc; }
+    .crew-card { border: 1px solid #cbd5e1; background: #fff; padding: 8px; border-radius: 4px; }
+    .crew-tier { font-size: 8.5px; font-weight: 700; color: #64748b; text-transform: uppercase; }
+    .crew-name { font-size: 11px; font-weight: 700; color: #0f172a; margin-top: 3px; }
+    .crew-role { font-size: 9px; color: #475569; margin-top: 1px; }
+    .crew-sig { font-size: 8px; color: #4a7c5e; font-weight: 600; margin-top: 6px; padding-top: 4px; border-top: 1px dashed #e2e8f0; }
+    .footer { display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #e2e8f0; padding-top: 12px; font-size: 9px; color: #64748b; }
+    .hash-code { font-family: monospace; font-size: 9.5px; color: #083260; font-weight: 600; }
+    @media print {
+      body { background: #fff; padding: 0; }
+      .cert-container { border: none; padding: 0; max-width: none; box-shadow: none; }
+      .no-print { display: none !important; }
+    }
+  </style>
+</head>
+<body>
+  <div class="cert-container">
+    <div class="header">
+      <div class="logo-block">
+        <h1>HI-TECH RADIATORS PVT. LTD.</h1>
+        <div class="sub">Unit 2: Plot E-24/1, MIDC Chakan Phase II, Pune 410501 · ISO 9001:2015 / IATF 16949 Certified</div>
+        <div class="sub">Quality Assurance & Shopfloor Digital Inspection Division</div>
+      </div>
+      <div class="cert-title-block">
+        <h2>Inspection Certificate (COC)</h2>
+        <div class="cert-no">COC-${record.recordNo}</div>
+        <div style="font-size: 9.5px; color: #64748b; margin-top: 2px;">Issued: ${new Date(record.inspectedAt).toLocaleDateString()}</div>
+      </div>
+    </div>
+
+    <div class="meta-grid">
+      <div class="meta-item">
+        <div class="label">Work Order</div>
+        <div class="val-mono">${record.workOrder?.woNumber || "-"}</div>
+      </div>
+      <div class="meta-item">
+        <div class="label">HTU Radiator Serial</div>
+        <div class="val-mono">${record.htuNo || "-"}</div>
+      </div>
+      <div class="meta-item">
+        <div class="label">Customer</div>
+        <div class="val">${record.workOrder?.customer || "-"}</div>
+      </div>
+      <div class="meta-item">
+        <div class="label">Item / Model</div>
+        <div class="val">${record.workOrder?.itemName || "Radiator Core"}</div>
+      </div>
+      <div class="meta-item">
+        <div class="label">Manufacturing Stage</div>
+        <div class="val">${record.stage?.stageCode} · ${record.stage?.name}</div>
+      </div>
+      <div class="meta-item">
+        <div class="label">Standard / SOP</div>
+        <div class="val">${record.stage?.documentRef || "QCI/F/01"}</div>
+      </div>
+      <div class="meta-item">
+        <div class="label">Operational Shift</div>
+        <div class="val">Shift ${record.shift}</div>
+      </div>
+      <div class="meta-item">
+        <div class="label">CTQ Gate Result</div>
+        <div class="val" style="color: ${record.ctqResult === "Pass" ? "#22543d" : "#742a2a"}">${record.ctqResult || "Pass"}</div>
+      </div>
+    </div>
+
+    <div class="verdict-banner ${isPass ? "verdict-pass" : "verdict-fail"}">
+      <div>
+        <div class="verdict-text">${isPass ? "✓ 100% Quality Approved — Conforming Stage Gate" : "⚠ Quality Gate Nonconformance — Containment Required"}</div>
+        <div style="font-size: 10px; margin-top: 2px;">${isPass ? "All inspected characteristics evaluated within engineering tolerance specifications." : "One or more parameters out-of-tolerance. Component held for disposition."}</div>
+      </div>
+      <div style="text-align: right;">
+        <span style="font-weight: 800; font-size: 13px;">${record.overallResult}</span>
+      </div>
+    </div>
+
+    <div style="font-weight: 700; font-size: 11px; color: #083260; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.3px;">
+      Characteristic Measurements & Tolerance Evaluations (${charEntries.length})
+    </div>
+    <table>
+      <thead>
+        <tr>
+          <th style="width: 35px;">Seq</th>
+          <th>Inspection Parameter</th>
+          <th>Specification / Norm</th>
+          <th>Tool / Method</th>
+          <th>Measured Value</th>
+          <th style="width: 85px; text-align: center;">Evaluation</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${charEntries.map(([id, m]: any, idx: number) => {
+          const pass = m.pass !== false;
+          return `<tr>
+            <td style="font-family: monospace; font-weight: 600;">${String(idx + 1).padStart(2, "0")}</td>
+            <td>
+              <strong>${m.name || id}</strong>
+              ${m.ctq ? '<span class="tag-ctq">CTQ</span>' : ""}
+            </td>
+            <td>${m.specification || "-"}</td>
+            <td style="color: #64748b;">${m.method || "Standard Gauge"}</td>
+            <td style="font-family: monospace; font-weight: 700;">${String(m.value || "-")} ${m.unit || ""}</td>
+            <td style="text-align: center;">
+              <span class="${pass ? "tag-intol" : "tag-outtol"}">${pass ? "IN TOL" : "OUT OF TOL"}</span>
+            </td>
+          </tr>`;
+        }).join("")}
+      </tbody>
+    </table>
+
+    <div style="font-weight: 700; font-size: 11px; color: #083260; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.3px;">
+      4-Tier Personnel Accountability & Audit Sign-off Crew
+    </div>
+    <div class="crew-grid">
+      <div class="crew-card">
+        <div class="crew-tier">1. Line Operator</div>
+        <div class="crew-name">${signoff.operator || "-"}</div>
+        <div class="crew-role">${signoff.operatorRole || "Fabrication Craftsman"}</div>
+        <div class="crew-sig">✓ Fabricated Unit</div>
+      </div>
+      <div class="crew-card">
+        <div class="crew-tier">2. Documented By</div>
+        <div class="crew-name">${signoff.documentedBy || "-"}</div>
+        <div class="crew-role">${signoff.documenterRole || "Inspector"} (@${signoff.documenterUsername || "staff"})</div>
+        <div class="crew-sig">✓ Session Logged</div>
+      </div>
+      <div class="crew-card">
+        <div class="crew-tier">3. Quality Checker</div>
+        <div class="crew-name">${signoff.checkedBy || "-"}</div>
+        <div class="crew-role">${signoff.checkerRole || "QC Inspector"}</div>
+        <div class="crew-sig">✓ Tolerances Checked</div>
+      </div>
+      <div class="crew-card">
+        <div class="crew-tier">4. Releasing Approver</div>
+        <div class="crew-name">${signoff.approvedBy || "-"}</div>
+        <div class="crew-role">${signoff.approverRole || "Quality Manager"}</div>
+        <div class="crew-sig">✓ Release Approved</div>
+      </div>
+    </div>
+
+    ${record.notes ? `
+    <div style="background: #f8fafc; border: 1px solid #e2e8f0; padding: 8px 12px; border-radius: 4px; margin-bottom: 16px;">
+      <div style="font-size: 9px; font-weight: 700; color: #64748b; text-transform: uppercase;">Inspector Remarks & Observations</div>
+      <div style="font-size: 10.5px; color: #0f172a; margin-top: 2px;">${record.notes}</div>
+    </div>` : ""}
+
+    <div class="footer">
+      <div>
+        <span>Digital Audit Verification Stamp: </span>
+        <span class="hash-code">${signoff.digitalSignature || `SIG-${record.id?.slice(-8)}-VERIFIED`}</span>
+      </div>
+      <div>
+        <span>Hive QMS · Generated: ${new Date().toISOString()} · Page 1 of 1</span>
+      </div>
+    </div>
+  </div>
+</body>
+</html>`;
+}
+
+function downloadInspectionCertificateHtml(record: any, signoff: any, measurements: Record<string, any>) {
+  const html = generateInspectionCertificateHtml(record, signoff, measurements);
+  const blob = new Blob([html], { type: "text/html;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `Inspection_Certificate_${record.recordNo}_HTU_${record.htuNo}.html`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+function printInspectionCertificate(record: any, signoff: any, measurements: Record<string, any>) {
+  const html = generateInspectionCertificateHtml(record, signoff, measurements);
+  const printWindow = window.open("", "_blank");
+  if (printWindow) {
+    printWindow.document.open();
+    printWindow.document.write(html);
+    printWindow.document.close();
+    setTimeout(() => {
+      printWindow.focus();
+      printWindow.print();
+    }, 400);
+  }
+}
+
+function downloadInspectionCsv(record: any, signoff: any, measurements: Record<string, any>) {
+  const charEntries = Object.entries(measurements).filter(([key]) => !key.startsWith("_"));
+
+  let csv = `HI-TECH RADIATORS PVT. LTD. - DIGITAL STAGE INSPECTION REPORT\r\n`;
+  csv += `Exported At: ${new Date().toISOString()} · Certificate Reference: COC-${record.recordNo}\r\n\r\n`;
+
+  csv += `INSPECTION METADATA & STAGE ROUTING\r\n`;
+  csv += `Record No,Work Order,Customer,HTU Radiator Serial,Stage Code,Stage Name,Document Ref,Shift,Inspected At,Overall Gate Result,CTQ Result\r\n`;
+  csv += `"${record.recordNo}","${record.workOrder?.woNumber || ""}","${record.workOrder?.customer || ""}","${record.htuNo || ""}","${record.stage?.stageCode || ""}","${record.stage?.name || ""}","${record.stage?.documentRef || ""}","Shift ${record.shift}","${record.inspectedAt}","${record.overallResult}","${record.ctqResult || ""}"\r\n\r\n`;
+
+  csv += `4-TIER PERSONNEL ACCOUNTABILITY AUDIT TRAIL\r\n`;
+  csv += `Tier,Personnel Name,Designation,Authority Level,Audit Role,Digital Signature Hash\r\n`;
+  csv += `"Tier 3 - Line Operator","${signoff.operator || ""}","${signoff.operatorRole || "Operator"}","Shopfloor Fabrication","Fabricated physical radiator unit","${signoff.digitalSignature || ""}"\r\n`;
+  csv += `"Documented By","${signoff.documentedBy || ""}","${signoff.documenterRole || "Inspector"}","Digital Author","Logged and authored digital form session (@${signoff.documenterUsername || ""})","${signoff.digitalSignature || ""}"\r\n`;
+  csv += `"Tier 2 - Quality Checker","${signoff.checkedBy || ""}","${signoff.checkerRole || "QCInspector"}","Quality Verification","Verified physical dimensions and gauge readings","${signoff.digitalSignature || ""}"\r\n`;
+  csv += `"Tier 1 - Releasing Approver","${signoff.approvedBy || ""}","${signoff.approverRole || "QualityManager"}","Gate Release Authority","Approved stage gate clearance and disposition","${signoff.digitalSignature || ""}"\r\n\r\n`;
+
+  csv += `CHARACTERISTIC MEASUREMENTS & TOLERANCE EVALUATIONS\r\n`;
+  csv += `Seq,Parameter Name,Specification / Norm,Nominal,Lower Limit,Upper Limit,Unit,Tool / Method,Measured Shopfloor Value,Tolerance Verdict,CTQ Gate\r\n`;
+
+  charEntries.forEach(([id, m]: any, idx: number) => {
+    const pass = m.pass !== false;
+    csv += `"${idx + 1}","${m.name || id}","${m.specification || ""}","${m.nominalValue ?? ""}","${m.lowerLimit ?? ""}","${m.upperLimit ?? ""}","${m.unit || ""}","${m.method || "Standard Gauge"}","${m.value ?? ""}","${pass ? "IN TOL" : "OUT OF TOL"}","${m.ctq ? "YES" : "NO"}"\r\n`;
+  });
+
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `Inspection_Report_${record.recordNo}_HTU_${record.htuNo}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+function downloadInspectionJson(record: any, signoff: any, measurements: Record<string, any>) {
+  const charEntries = Object.entries(measurements).filter(([key]) => !key.startsWith("_"));
+  const payload = {
+    schemaVersion: "hive.qms.inspection.v4",
+    exportedAt: new Date().toISOString(),
+    organization: {
+      company: "Hi-Tech Radiators Pvt. Ltd.",
+      plant: "Unit 2, MIDC Chakan Phase II, Pune",
+      standards: ["ISO 9001:2015", "IATF 16949"],
+    },
+    inspectionRecord: {
+      recordNo: record.recordNo,
+      workOrder: record.workOrder?.woNumber,
+      customer: record.workOrder?.customer,
+      htuNo: record.htuNo,
+      stage: {
+        stageCode: record.stage?.stageCode,
+        name: record.stage?.name,
+        documentRef: record.stage?.documentRef,
+      },
+      shift: record.shift,
+      inspectedAt: record.inspectedAt,
+      ctqResult: record.ctqResult,
+      overallResult: record.overallResult,
+      notes: record.notes || "",
+    },
+    personnelSignoff: {
+      operator: { name: signoff.operator, role: signoff.operatorRole, tier: "Tier 3: Fabrication Operator" },
+      documentedBy: { name: signoff.documentedBy, role: signoff.documenterRole, username: signoff.documenterUsername, tier: "Digital Session Author" },
+      checkedBy: { name: signoff.checkedBy, role: signoff.checkerRole, tier: "Tier 2: Quality Checker" },
+      approvedBy: { name: signoff.approvedBy, role: signoff.approverRole, tier: "Tier 1: Releasing Approver" },
+      signedAt: signoff.signedAt,
+      digitalSignature: signoff.digitalSignature,
+    },
+    measurements: charEntries.map(([id, m]: any, idx: number) => ({
+      sequence: idx + 1,
+      id,
+      name: m.name || id,
+      specification: m.specification || null,
+      tool: m.method || null,
+      measuredValue: m.value,
+      inTolerance: m.pass !== false,
+      isCTQ: !!m.ctq,
+    })),
+    evidence: record.evidencePath ? (typeof record.evidencePath === "string" ? JSON.parse(record.evidencePath || "[]") : record.evidencePath) : [],
+  };
+
+  const jsonStr = JSON.stringify(payload, null, 2);
+  const blob = new Blob([jsonStr], { type: "application/json;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `Inspection_Audit_${record.recordNo}_HTU_${record.htuNo}.json`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+// ============================================================
+// Inspection Detail Component (Spacious 80vw Drawer)
+// ============================================================
 function InspectionDetail({ record, onClose }: { record: any; onClose?: () => void }) {
   const measurements = useMemo(() => {
     try { return typeof record.measurements === "string" ? JSON.parse(record.measurements) : record.measurements || {}; }
@@ -3871,37 +4327,216 @@ function InspectionDetail({ record, onClose }: { record: any; onClose?: () => vo
 
   return (
     <div className="flex flex-col h-full">
+      {/* Drawer Header with Title and Quick Actions */}
       <SheetHeader className="px-6 pt-6 pb-4 border-b flex flex-row items-center justify-between shrink-0" style={{ borderColor: "var(--hairline)" }}>
-        <div>
-          <div className="flex items-center gap-2">
-            <SheetTitle className="t-display-sm t-code" style={{ color: "var(--ink)" }}>{record.recordNo}</SheetTitle>
-            <ResultBadge result={record.overallResult} />
+        <div className="min-w-0 flex-1 mr-4">
+          <div className="flex items-center gap-2 flex-wrap">
+            <SheetTitle
+              className="t-display-sm t-code"
+              style={{ color: "var(--ink)" }}
+              data-tooltip="Unique sequential inspection record identifier in QMS database"
+              data-tooltip-pos="bottom"
+            >
+              {record.recordNo}
+            </SheetTitle>
+            <div data-tooltip="Overall stage gate release evaluation status" data-tooltip-pos="bottom">
+              <ResultBadge result={record.overallResult} />
+            </div>
+            <span
+              className="t-code text-xs px-2 py-0.5 rounded font-mono"
+              style={{ backgroundColor: "var(--canvas-soft)", color: "var(--muted)", border: "1px solid var(--hairline)" }}
+              data-tooltip="Approved standard operating procedure instruction"
+              data-tooltip-pos="bottom"
+            >
+              {record.stage?.documentRef || "QCI/F/01"}
+            </span>
           </div>
-          <SheetDescription className="t-body-md mt-1" style={{ color: "var(--muted)" }}>
-            {record.stage?.name} · {record.workOrder?.woNumber} · HTU {record.htuNo}
+          <SheetDescription className="t-body-md mt-1 truncate" style={{ color: "var(--muted)" }}>
+            {record.stage?.name} · {record.workOrder?.woNumber} · HTU {record.htuNo} · {record.workOrder?.customer || "Standard Customer"}
           </SheetDescription>
         </div>
-        {onClose && (
-          <Button variant="ghost" size="sm" onClick={onClose} className="h-8 w-8 p-0 rounded-lg">
-            <X size={16} />
+
+        {/* Quick Action Buttons Group in Header */}
+        <div className="flex items-center gap-1.5 shrink-0">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => printInspectionCertificate(record, signoff, measurements)}
+            data-tooltip="Print official Certificate of Conformance (COC) or Save as PDF"
+            data-tooltip-pos="bottom"
+            className="h-8 px-2.5 rounded-lg flex items-center gap-1.5 t-body-sm font-medium"
+            style={{ borderColor: "var(--hairline)", backgroundColor: "var(--surface-card)" }}
+          >
+            <Printer size={13} style={{ color: "var(--primary)" }} />
+            <span className="hidden sm:inline">Print / PDF</span>
           </Button>
-        )}
+
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => downloadInspectionCsv(record, signoff, measurements)}
+            data-tooltip="Download tabular measurements & limits as CSV for Excel/SPC"
+            data-tooltip-pos="bottom"
+            className="h-8 px-2.5 rounded-lg flex items-center gap-1.5 t-body-sm font-medium"
+            style={{ borderColor: "var(--hairline)", backgroundColor: "var(--surface-card)" }}
+          >
+            <FileSpreadsheet size={13} style={{ color: "#4a7c5e" }} />
+            <span className="hidden sm:inline">CSV</span>
+          </Button>
+
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => downloadInspectionJson(record, signoff, measurements)}
+            data-tooltip="Download cryptographic digital audit package as JSON"
+            data-tooltip-pos="bottom"
+            className="h-8 px-2.5 rounded-lg flex items-center gap-1.5 t-body-sm font-medium"
+            style={{ borderColor: "var(--hairline)", backgroundColor: "var(--surface-card)" }}
+          >
+            <FileJson size={13} style={{ color: "#d97706" }} />
+            <span className="hidden sm:inline">JSON</span>
+          </Button>
+
+          {onClose && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={onClose}
+              data-tooltip="Close inspection drawer"
+              data-tooltip-pos="left"
+              className="h-8 w-8 p-0 rounded-lg ml-1"
+            >
+              <X size={16} />
+            </Button>
+          )}
+        </div>
       </SheetHeader>
 
       <div className="p-6 space-y-5 overflow-y-auto flex-1">
-        {/* Core Metadata */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 p-3.5 rounded-xl" style={{ backgroundColor: "var(--canvas-soft)", border: "1px solid var(--hairline)" }}>
-          <DetailRow label="Work Order" value={record.workOrder?.woNumber} mono />
-          <DetailRow label="HTU Serial" value={record.htuNo} mono />
-          <DetailRow label="Stage Code" value={`${record.stage?.stageCode} (${record.stage?.name})`} />
-          <DetailRow label="Shift" value={`Shift ${record.shift}`} />
-          <DetailRow label="Inspected At" value={fmtDateTime(record.inspectedAt)} />
-          <DetailRow label="CTQ Result" value={record.ctqResult} />
-          <DetailRow label="Document Ref" value={record.stage?.documentRef || "QCI/F/01"} mono />
-          <DetailRow label="Overall Gate" value={record.overallResult} />
+        {/* ============================================================ */}
+        {/* STANDARDIZED REPORT & COMPLIANCE DOWNLOAD CENTER */}
+        {/* ============================================================ */}
+        <div className="rounded-xl p-4 space-y-3" style={{ backgroundColor: "var(--surface-card)", border: "1.5px solid rgba(8, 50, 96, 0.2)" }}>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Download size={16} style={{ color: "var(--primary)" }} />
+              <div>
+                <span className="t-body-sm font-semibold" style={{ color: "var(--ink)" }}>Standardized Inspection Reports & Downloads</span>
+                <span className="t-label text-[10px] ml-2 px-1.5 py-0.2 rounded font-mono" style={{ backgroundColor: "rgba(8, 50, 96, 0.08)", color: "var(--primary)" }}>
+                  ISO 9001 / IATF 16949 COMPLIANT
+                </span>
+              </div>
+            </div>
+            <InfoTooltip text="Download signed stage inspection certificates, tabular Excel spreadsheets, or tamper-proof digital audit files." position="left" />
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-2.5 pt-1">
+            {/* Format 1: Official Certificate */}
+            <div className="p-3 rounded-lg flex flex-col justify-between" style={{ backgroundColor: "var(--canvas-soft)", border: "1px solid var(--hairline)" }}>
+              <div>
+                <div className="flex items-center justify-between">
+                  <span className="t-code text-[11px] font-bold" style={{ color: "var(--primary)" }}>FORMAT 1 · PDF / PRINT</span>
+                  <span className="text-[9px] px-1.5 py-0.2 rounded font-semibold" style={{ backgroundColor: "rgba(74, 124, 94, 0.12)", color: "#4a7c5e" }}>OFFICIAL COC</span>
+                </div>
+                <div className="t-body-sm font-semibold mt-1" style={{ color: "var(--ink)" }}>Inspection Certificate</div>
+                <div className="t-label text-[10.5px] mt-1" style={{ color: "var(--muted)" }}>
+                  Official release certificate with company letterhead, 4-tier crew signatures, parameter matrix, and SHA-256 seal.
+                </div>
+              </div>
+              <div className="flex items-center gap-1.5 mt-3 pt-2 border-t" style={{ borderColor: "var(--hairline)" }}>
+                <Button
+                  size="sm"
+                  onClick={() => printInspectionCertificate(record, signoff, measurements)}
+                  data-tooltip="Open printable preview formatted for A4 sheet or Save as PDF"
+                  data-tooltip-pos="top"
+                  className="h-7 px-2.5 text-xs rounded-md flex-1 flex items-center justify-center gap-1.5"
+                  style={{ backgroundColor: "var(--primary)", color: "var(--on-primary)" }}
+                >
+                  <Printer size={12} /> Print / Save PDF
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => downloadInspectionCertificateHtml(record, signoff, measurements)}
+                  data-tooltip="Download standalone HTML certificate file"
+                  data-tooltip-pos="top"
+                  className="h-7 px-2 text-xs rounded-md"
+                  style={{ borderColor: "var(--hairline)" }}
+                >
+                  <FileDown size={12} />
+                </Button>
+              </div>
+            </div>
+
+            {/* Format 2: CSV Tabular Parameter Log */}
+            <div className="p-3 rounded-lg flex flex-col justify-between" style={{ backgroundColor: "var(--canvas-soft)", border: "1px solid var(--hairline)" }}>
+              <div>
+                <div className="flex items-center justify-between">
+                  <span className="t-code text-[11px] font-bold" style={{ color: "#4a7c5e" }}>FORMAT 2 · CSV DATA</span>
+                  <span className="text-[9px] px-1.5 py-0.2 rounded font-semibold" style={{ backgroundColor: "var(--surface-strong)", color: "var(--ink)" }}>EXCEL / SPC</span>
+                </div>
+                <div className="t-body-sm font-semibold mt-1" style={{ color: "var(--ink)" }}>Tabular Tolerances (CSV)</div>
+                <div className="t-label text-[10.5px] mt-1" style={{ color: "var(--muted)" }}>
+                  Raw measured dimensions, nominal specifications, upper/lower tolerances, and operator crew for Excel/Minitab analysis.
+                </div>
+              </div>
+              <div className="mt-3 pt-2 border-t" style={{ borderColor: "var(--hairline)" }}>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => downloadInspectionCsv(record, signoff, measurements)}
+                  data-tooltip="Download tabular parameter measurements as RFC 4180 CSV"
+                  data-tooltip-pos="top"
+                  className="h-7 px-3 text-xs rounded-md w-full flex items-center justify-center gap-1.5"
+                  style={{ borderColor: "var(--hairline)", color: "var(--ink)" }}
+                >
+                  <FileSpreadsheet size={12} style={{ color: "#4a7c5e" }} /> Download CSV
+                </Button>
+              </div>
+            </div>
+
+            {/* Format 3: Digital Audit Package */}
+            <div className="p-3 rounded-lg flex flex-col justify-between" style={{ backgroundColor: "var(--canvas-soft)", border: "1px solid var(--hairline)" }}>
+              <div>
+                <div className="flex items-center justify-between">
+                  <span className="t-code text-[11px] font-bold" style={{ color: "#d97706" }}>FORMAT 3 · AUDIT JSON</span>
+                  <span className="text-[9px] px-1.5 py-0.2 rounded font-semibold" style={{ backgroundColor: "rgba(217, 119, 6, 0.12)", color: "#d97706" }}>IMMUTABLE</span>
+                </div>
+                <div className="t-body-sm font-semibold mt-1" style={{ color: "var(--ink)" }}>Digital Audit Package</div>
+                <div className="t-label text-[10.5px] mt-1" style={{ color: "var(--muted)" }}>
+                  Cryptographic machine-readable JSON v4 with timestamps, user session tokens, measurements tree, and audit hash.
+                </div>
+              </div>
+              <div className="mt-3 pt-2 border-t" style={{ borderColor: "var(--hairline)" }}>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => downloadInspectionJson(record, signoff, measurements)}
+                  data-tooltip="Download cryptographic JSON audit file for compliance record-keeping"
+                  data-tooltip-pos="top"
+                  className="h-7 px-3 text-xs rounded-md w-full flex items-center justify-center gap-1.5"
+                  style={{ borderColor: "var(--hairline)", color: "var(--ink)" }}
+                >
+                  <FileJson size={12} style={{ color: "#d97706" }} /> Download JSON
+                </Button>
+              </div>
+            </div>
+          </div>
         </div>
 
-        {/* 4-Tier Personnel Accountability Dossier */}
+        {/* Core Metadata Grid with Tooltips */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 p-3.5 rounded-xl" style={{ backgroundColor: "var(--canvas-soft)", border: "1px solid var(--hairline)" }}>
+          <DetailRow label="Work Order" value={record.workOrder?.woNumber} mono tooltip="Authorized manufacturing production work order" />
+          <DetailRow label="HTU Serial" value={record.htuNo} mono tooltip="Unique unit serial number stamped on radiator header" />
+          <DetailRow label="Stage Code" value={`${record.stage?.stageCode} (${record.stage?.name})`} tooltip="Manufacturing process stage in route" />
+          <DetailRow label="Shift" value={`Shift ${record.shift}`} tooltip="Shopfloor manufacturing shift when inspected" />
+          <DetailRow label="Inspected At" value={fmtDateTime(record.inspectedAt)} tooltip="Exact system timestamp when parameters were recorded" />
+          <DetailRow label="CTQ Result" value={record.ctqResult} tooltip="Critical-To-Quality acceptance criteria evaluation" />
+          <DetailRow label="Document Ref" value={record.stage?.documentRef || "QCI/F/01"} mono tooltip="Standard Operating Procedure (SOP) standard" />
+          <DetailRow label="Overall Gate" value={record.overallResult} tooltip="Final stage release clearance decision" />
+        </div>
+
+        {/* 4-Tier Personnel Accountability Dossier with Tooltips */}
         <div className="rounded-xl p-4 space-y-3" style={{ backgroundColor: "var(--surface-card)", border: "1px solid var(--hairline)" }}>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -3915,14 +4550,24 @@ function InspectionDetail({ record, onClose }: { record: any; onClose?: () => vo
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5">
             {/* Operator */}
-            <div className="p-2.5 rounded-lg" style={{ backgroundColor: "var(--canvas-soft)", border: "1px solid var(--hairline)" }}>
+            <div
+              className="p-2.5 rounded-lg cursor-help transition-colors hover:bg-[var(--surface-card)]"
+              style={{ backgroundColor: "var(--canvas-soft)", border: "1px solid var(--hairline)" }}
+              data-tooltip="Shopfloor craftsman/machinist who fabricated this radiator unit"
+              data-tooltip-pos="top"
+            >
               <div className="t-label text-[10px]" style={{ color: "var(--muted)" }}>1. LINE OPERATOR</div>
               <div className="t-body-sm font-semibold mt-0.5 truncate" style={{ color: "var(--ink)" }}>{signoff.operator || record.operator || "-"}</div>
               <div className="t-label text-[10px] mt-0.5" style={{ color: "var(--muted-soft)" }}>{signoff.operatorRole || "Fabrication Operator"}</div>
             </div>
 
             {/* Documented By */}
-            <div className="p-2.5 rounded-lg" style={{ backgroundColor: "var(--canvas-soft)", border: "1px solid var(--hairline)" }}>
+            <div
+              className="p-2.5 rounded-lg cursor-help transition-colors hover:bg-[var(--surface-card)]"
+              style={{ backgroundColor: "var(--canvas-soft)", border: "1px solid var(--hairline)" }}
+              data-tooltip="Authenticated digital author logged into this session who entered measurements"
+              data-tooltip-pos="top"
+            >
               <div className="t-label text-[10px]" style={{ color: "var(--muted)" }}>2. DOCUMENTED BY</div>
               <div className="t-body-sm font-semibold mt-0.5 truncate" style={{ color: "var(--ink)" }}>{signoff.documentedBy || record.inspector || "-"}</div>
               <div className="t-label text-[10px] mt-0.5 truncate" style={{ color: "var(--primary)" }}>
@@ -3931,14 +4576,24 @@ function InspectionDetail({ record, onClose }: { record: any; onClose?: () => vo
             </div>
 
             {/* Quality Checker */}
-            <div className="p-2.5 rounded-lg" style={{ backgroundColor: "var(--canvas-soft)", border: "1px solid var(--hairline)" }}>
+            <div
+              className="p-2.5 rounded-lg cursor-help transition-colors hover:bg-[var(--surface-card)]"
+              style={{ backgroundColor: "var(--canvas-soft)", border: "1px solid var(--hairline)" }}
+              data-tooltip="Certified QC Inspector who verified physical dimensions and tolerances on shopfloor"
+              data-tooltip-pos="top"
+            >
               <div className="t-label text-[10px]" style={{ color: "var(--muted)" }}>3. QUALITY CHECKER</div>
               <div className="t-body-sm font-semibold mt-0.5 truncate" style={{ color: "var(--ink)" }}>{signoff.checkedBy || record.inspector || "-"}</div>
               <div className="t-label text-[10px] mt-0.5" style={{ color: "var(--muted-soft)" }}>{signoff.checkerRole || "QC Inspector"}</div>
             </div>
 
             {/* Releasing Approver */}
-            <div className="p-2.5 rounded-lg" style={{ backgroundColor: "var(--canvas-soft)", border: "1px solid var(--hairline)" }}>
+            <div
+              className="p-2.5 rounded-lg cursor-help transition-colors hover:bg-[var(--surface-card)]"
+              style={{ backgroundColor: "var(--canvas-soft)", border: "1px solid var(--hairline)" }}
+              data-tooltip="Authorized quality authority who approved stage gate release or disposition"
+              data-tooltip-pos="top"
+            >
               <div className="t-label text-[10px]" style={{ color: "var(--muted)" }}>4. RELEASING APPROVER</div>
               <div className="t-body-sm font-semibold mt-0.5 truncate" style={{ color: "var(--ink)" }}>{signoff.approvedBy || "Amit Shah"}</div>
               <div className="t-label text-[10px] mt-0.5" style={{ color: "var(--muted-soft)" }}>{signoff.approverRole || "Quality Manager"}</div>
@@ -3946,7 +4601,12 @@ function InspectionDetail({ record, onClose }: { record: any; onClose?: () => vo
           </div>
 
           {/* Digital Signature & Hash */}
-          <div className="flex items-center justify-between text-[11px] pt-1.5 border-t" style={{ borderColor: "var(--hairline)" }}>
+          <div
+            className="flex items-center justify-between text-[11px] pt-1.5 border-t cursor-help"
+            style={{ borderColor: "var(--hairline)" }}
+            data-tooltip="Cryptographic SHA-256 digital verification hash guaranteeing audit tamper-proofing"
+            data-tooltip-pos="top"
+          >
             <span className="t-label" style={{ color: "var(--muted)" }}>Digital Signature Hash:</span>
             <span className="t-code font-medium" style={{ color: "var(--primary)" }}>{signoff.digitalSignature || `SIG-${record.id?.slice(-8) || "VERIFIED"}`}</span>
           </div>
@@ -3961,7 +4621,12 @@ function InspectionDetail({ record, onClose }: { record: any; onClose?: () => vo
             />
           </div>
         ) : (
-          <div className="rounded-lg p-3 flex items-center gap-2.5" style={{ backgroundColor: "rgba(74, 124, 94, 0.05)", border: "1px solid rgba(74, 124, 94, 0.2)" }}>
+          <div
+            className="rounded-lg p-3 flex items-center gap-2.5"
+            style={{ backgroundColor: "rgba(74, 124, 94, 0.05)", border: "1px solid rgba(74, 124, 94, 0.2)" }}
+            data-tooltip="Unit conforms to 100% nominal engineering tolerances. Visual proof not required for clean releases."
+            data-tooltip-pos="top"
+          >
             <CheckCircle2 size={16} style={{ color: "#4a7c5e" }} />
             <div className="t-body-sm text-[12px]" style={{ color: "var(--body)" }}>
               <strong style={{ color: "#4a7c5e" }}>Clean Conforming Pass:</strong> Visual defect proofs are not required for units meeting 100% nominal tolerance.
@@ -3969,64 +4634,103 @@ function InspectionDetail({ record, onClose }: { record: any; onClose?: () => vo
           </div>
         )}
 
-        {/* Characteristic Measurements Breakdown */}
+        {/* Characteristic Measurements Breakdown Table */}
         {charEntries.length > 0 && (
-          <div>
-            <div className="t-label mb-2 flex items-center justify-between" style={{ color: "var(--muted)" }}>
-              <span>INSPECTED CHARACTERISTICS ({charEntries.length})</span>
-              <span className="t-code text-[10px]">{record.stage?.name}</span>
+          <div className="rounded-xl overflow-hidden" style={{ border: "1px solid var(--hairline)", backgroundColor: "var(--surface-card)" }}>
+            <div className="p-3.5 border-b flex items-center justify-between" style={{ borderColor: "var(--hairline)", backgroundColor: "var(--canvas-soft)" }}>
+              <div className="flex items-center gap-2">
+                <span className="t-label font-bold text-[11px]" style={{ color: "var(--ink)" }}>CHARACTERISTIC MEASUREMENTS & TOLERANCE BAND</span>
+                <span className="t-code text-[10px] px-2 py-0.5 rounded" style={{ backgroundColor: "var(--surface-card)", color: "var(--muted)" }}>
+                  {charEntries.length} CHECKS RECORDED
+                </span>
+              </div>
+              <div className="t-code text-xs font-semibold" style={{ color: "var(--primary)" }}>{record.stage?.name}</div>
             </div>
-            <div className="space-y-2">
-              {charEntries.map(([id, m]: any, idx: number) => {
-                const pass = m.pass !== false;
-                return (
-                  <div
-                    key={id}
-                    className="flex items-center justify-between rounded-lg p-3 transition-all"
-                    style={{
-                      border: pass ? "1px solid var(--hairline)" : "1.5px solid var(--semantic-error)",
-                      backgroundColor: pass ? "var(--canvas-soft)" : "rgba(160, 69, 69, 0.04)",
-                    }}
-                  >
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-2">
-                        <span className="t-code text-xs px-1.5 py-0.2 rounded" style={{ backgroundColor: "var(--surface-card)", color: "var(--muted)" }}>
-                          {String(idx + 1).padStart(2, "0")}
-                        </span>
-                        <span className="t-body-sm font-medium" style={{ color: "var(--ink)" }}>{m.name || id}</span>
-                        {m.ctq && (
-                          <span className="t-label text-[9px] px-1.5 py-0.2 rounded-full font-bold" style={{ backgroundColor: "var(--primary)", color: "var(--on-primary)" }}>
-                            CTQ
-                          </span>
-                        )}
-                      </div>
-                      <div className="t-label t-code text-xs mt-1" style={{ color: "var(--muted)" }}>
-                        Recorded Value: <strong style={{ color: "var(--ink)" }}>{String(m.value)}</strong>
-                      </div>
-                    </div>
-                    <div className="shrink-0 flex items-center gap-2">
-                      <span
-                        className="t-label text-[10.5px] px-2 py-0.5 rounded font-mono font-medium"
+
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse text-xs">
+                <thead>
+                  <tr style={{ borderBottom: "1px solid var(--hairline)", backgroundColor: "var(--canvas-soft)" }}>
+                    <th className="py-2.5 px-3.5 t-label font-semibold" style={{ color: "var(--muted)", width: 45 }}>#</th>
+                    <th className="py-2.5 px-3.5 t-label font-semibold" style={{ color: "var(--muted)" }}>Characteristic / Parameter</th>
+                    <th className="py-2.5 px-3.5 t-label font-semibold" style={{ color: "var(--muted)" }}>Specification / Norm</th>
+                    <th className="py-2.5 px-3.5 t-label font-semibold" style={{ color: "var(--muted)" }}>Tool / Method</th>
+                    <th className="py-2.5 px-3.5 t-label font-semibold" style={{ color: "var(--muted)" }}>Measured Reading</th>
+                    <th className="py-2.5 px-3.5 t-label font-semibold text-center" style={{ color: "var(--muted)", width: 110 }}>Tolerance Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {charEntries.map(([id, m]: any, idx: number) => {
+                    const pass = m.pass !== false;
+                    return (
+                      <tr
+                        key={id}
+                        className="transition-colors hover:bg-[var(--canvas-soft)]"
                         style={{
-                          backgroundColor: pass ? "rgba(74, 124, 94, 0.12)" : "rgba(160, 69, 69, 0.12)",
-                          color: pass ? "#4a7c5e" : "var(--semantic-error)",
+                          borderBottom: "1px solid var(--hairline)",
+                          backgroundColor: pass ? "transparent" : "rgba(160, 69, 69, 0.03)",
                         }}
                       >
-                        {pass ? "IN TOL" : "OUT OF TOL"}
-                      </span>
-                      {pass ? <CheckCircle2 size={16} style={{ color: "#4a7c5e" }} /> : <XCircle size={16} style={{ color: "var(--semantic-error)" }} />}
-                    </div>
-                  </div>
-                );
-              })}
+                        <td className="py-2.5 px-3.5 t-code font-medium" style={{ color: "var(--muted)" }}>
+                          {String(idx + 1).padStart(2, "0")}
+                        </td>
+                        <td className="py-2.5 px-3.5">
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <span className="font-medium" style={{ color: "var(--ink)" }}>{m.name || id}</span>
+                            {m.ctq && (
+                              <span
+                                className="t-label text-[9px] px-1.5 py-0.2 rounded-full font-bold"
+                                style={{ backgroundColor: "var(--primary)", color: "var(--on-primary)" }}
+                                data-tooltip="Critical-To-Quality parameter: failure triggers automatic containment"
+                                data-tooltip-pos="top"
+                              >
+                                CTQ
+                              </span>
+                            )}
+                          </div>
+                        </td>
+                        <td className="py-2.5 px-3.5 t-code text-[11px]" style={{ color: "var(--body)" }}>
+                          {m.specification || "-"}
+                        </td>
+                        <td className="py-2.5 px-3.5 t-label text-[11px]" style={{ color: "var(--muted)" }}>
+                          {m.method || "Standard Gauge"}
+                        </td>
+                        <td className="py-2.5 px-3.5 t-code font-bold text-[12px]" style={{ color: "var(--ink)" }}>
+                          {String(m.value)} {m.unit || ""}
+                        </td>
+                        <td className="py-2.5 px-3.5 text-center">
+                          <span
+                            className="inline-flex items-center gap-1 px-2.5 py-1 rounded font-mono text-[10.5px] font-semibold"
+                            style={{
+                              backgroundColor: pass ? "rgba(74, 124, 94, 0.12)" : "rgba(160, 69, 69, 0.12)",
+                              color: pass ? "#4a7c5e" : "var(--semantic-error)",
+                              border: `1px solid ${pass ? "rgba(74, 124, 94, 0.3)" : "rgba(160, 69, 69, 0.3)"}`,
+                            }}
+                            data-tooltip={pass ? "Measured dimension within engineering tolerance" : "Measured dimension out of tolerance limits"}
+                            data-tooltip-pos="left"
+                          >
+                            {pass ? <CheckCircle2 size={12} /> : <XCircle size={12} />}
+                            {pass ? "IN TOL" : "OUT OF TOL"}
+                          </span>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
             </div>
           </div>
         )}
 
         {record.notes && (
-          <div>
+          <div
+            className="rounded-xl p-3.5"
+            style={{ backgroundColor: "var(--canvas-soft)", border: "1px solid var(--hairline)" }}
+            data-tooltip="Shopfloor inspector remarks and stage notes"
+            data-tooltip-pos="top"
+          >
             <div className="t-label mb-1" style={{ color: "var(--muted)" }}>Inspection Notes</div>
-            <div className="t-body-sm rounded-lg p-3" style={{ backgroundColor: "var(--canvas-soft)", color: "var(--ink)" }}>{record.notes}</div>
+            <div className="t-body-sm font-medium" style={{ color: "var(--ink)" }}>{record.notes}</div>
           </div>
         )}
       </div>

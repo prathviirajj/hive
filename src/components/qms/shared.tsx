@@ -273,11 +273,11 @@ export function StatCard({ label, value, sublabel, tone = "neutral", icon, unit 
   );
 }
 
-export function DetailRow({ label, value, mono }: { label: string; value: string | null | undefined; mono?: boolean }) {
+export function DetailRow({ label, value, mono, tooltip }: { label: string; value: string | null | undefined; mono?: boolean; tooltip?: string }) {
   return (
-    <div>
+    <div {...(tooltip ? { "data-tooltip": tooltip, "data-tooltip-pos": "top" } : {})}>
       <div className="t-label mb-1" style={{ color: "var(--muted)" }}>{label}</div>
-      <div className={cn("t-body-sm", mono && "t-code")} style={{ color: "var(--ink)" }}>{value || "-"}</div>
+      <div className={cn("t-body-sm font-medium", mono && "t-code")} style={{ color: "var(--ink)" }}>{value || "-"}</div>
     </div>
   );
 }
