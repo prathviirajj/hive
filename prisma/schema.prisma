@@ -1,0 +1,617 @@
+// Hi-Tech QMS — Prisma schema
+// Transformer radiator manufacturing quality management system
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================================
+// Master data — Products, Routes, Stages, Characteristics
+// ============================================================
+
+model Product {
+  id           String   @id @default(cuid())
+  partNo       String   @unique
+  itemName     String
+  productGroup String   // RADIATORS-FG, TANKS-FG, etc.
+  category     String   // Finished Good, Raw Material
+  defaultRoute String   // K1, K2, K3, K4, INDO
+  finishType   String   // HDG, Painted, HDG+Painted, Plain
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  workOrders   WorkOrder[]
+}
+
+model ProcessRoute {
+  id          String   @id @default(cuid())
+  code        String   @unique // K1, K2, K3, K4, INDO
+  name        String
+  description String?
+  stages      ProcessStage[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model ProcessStage {
+  id            String   @id @default(cuid())
+  routeId       String
+  route         ProcessRoute @relation(fields: [routeId], references: [id], onDelete: Cascade)
+  seq           Int      // sequence number 10, 20, 30, ...
+  stageCode     String   // S01, S02, ...
+  name          String   // Rolling & forming, Single spot welding, ...
+  department    String?  // Quality, Production, Galvanizing
+  workCenter    String?
+  documentRef   String?  // QCI/F/02/01 etc.
+  responsibleRole String?
+  timing        String?  // During/after, Before, After
+  reactionPlan  String?
+  isCTQ         Boolean  @default(false)
+  isGate        Boolean  @default(false)
+  applicability String?  // which routes/finishes
+
+  characteristics StageCharacteristic[]
+  inspections      InspectionRecord[]
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@index([routeId])
+  @@index([seq])
+}
+
+model StageCharacteristic {
+  id              String   @id @default(cuid())
+  stageId         String
+  stage           ProcessStage @relation(fields: [stageId], references: [id], onDelete: Cascade)
+  seq             Int
+  name            String   // "Sheet Thickness", "Welding current (CTQ)"
+  charType        String   // dimensional, visual, parameter, leak, dft, lab
+  isCTQ           Boolean  @default(false)
+  specification   String?  // "As per Drg./Tol.±0.03 mm"
+  nominalValue    String?
+  upperLimit      String?
+  lowerLimit      String?
+  unit            String?  // mm, kg/cm2, microns, sec, deg C
+  method          String?  // Micrometer, Visual, Weld Checker
+  frequency       String?  // "First piece + SPC", "100% by operator"
+  sampleSize      String?
+  equipmentReq    String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([stageId])
+}
+
+// ============================================================
+// Sales / Work Orders / Production Plan
+// ============================================================
+
+model Customer {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  country   String?
+  createdAt DateTime @default(now())
+
+  workOrders WorkOrder[]
+}
+
+model WorkOrder {
+  id            String   @id @default(cuid())
+  woNumber      String   @unique
+  soNumber      String?
+  customerId    String?
+  customer      String
+  customerRef   Customer? @relation(fields: [customerId], references: [id])
+  customerPo    String?
+  productId     String?
+  product       Product? @relation(fields: [productId], references: [id])
+  itemName      String
+  size          String   // 1700 X 520 X 13 + 3 x 1.20
+  finishType    String   // HDG 70 MIC, Painted 80+230 RAL 7035
+  routeCode     String   // K1, K2, K3, K4, INDO
+  plannedQty    Int
+  completedQty  Int      @default(0)
+  rejectedQty   Int      @default(0)
+  reworkQty     Int      @default(0)
+  priority      String   @default("Medium") // High, Medium, Low
+  status        String   @default("Released") // Released, In Progress, On Hold, Completed, Short Closed
+  materialStatus String  @default("Available") // Available, Partial, Not Available
+  plannedStart  DateTime?
+  plannedEnd    DateTime?
+  salesPerson   String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  inspections   InspectionRecord[]
+  ncrs          Nonconformance[]
+  materialLots  MaterialLot[]
+  genealogy     ProductGenealogy[]
+  reworkJobs    ReworkJobOrder[]
+
+  @@index([status])
+  @@index([routeCode])
+}
+
+// ============================================================
+// Inspection Execution
+// ============================================================
+
+model InspectionRecord {
+  id            String   @id @default(cuid())
+  recordNo      String   @unique
+  workOrderId   String
+  workOrder     WorkOrder @relation(fields: [workOrderId], references: [id], onDelete: Cascade)
+  stageId       String
+  stage         ProcessStage @relation(fields: [stageId], references: [id])
+  htuNo         String?  // unique radiator identification
+  shift         String   // A, B
+  inspector     String
+  operator      String?
+  inspectedAt   DateTime @default(now())
+  overallResult String   @default("Pending") // Pass, Fail, Hold, Pending
+  ctqResult     String?  // Pass, Fail
+  measurements  String   // JSON: { charId: { value, pass, notes } }
+  defectsFound  String?  // JSON array of defect codes
+  evidencePath  String?
+  notes         String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  ncr           Nonconformance?
+
+  @@index([workOrderId])
+  @@index([stageId])
+  @@index([overallResult])
+}
+
+// ============================================================
+// Nonconformance & CAPA
+// ============================================================
+
+model Nonconformance {
+  id            String   @id @default(cuid())
+  ncrNumber     String   @unique
+  workOrderId   String
+  workOrder     WorkOrder @relation(fields: [workOrderId], references: [id], onDelete: Cascade)
+  inspectionId  String?  @unique
+  inspection    InspectionRecord? @relation(fields: [inspectionId], references: [id])
+  stageName     String
+  htuno         String?
+  defectCategory String  // Leakage, Burr, DFT out, Coplanarity, Surface defect, etc.
+  defectCode    String?
+  severity      String   @default("Major") // Critical, Major, Minor
+  status        String   @default("Open") // Open, Contained, Investigating, CAPA-Open, Effectiveness-Check, Closed
+  description   String
+  containment   String?
+  rootCause     String?
+  correctiveAction String?
+  capaOwner     String?
+  dueDate       DateTime?
+  closedAt      DateTime?
+  effectivenessVerified Boolean @default(false)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([status])
+  @@index([severity])
+}
+
+// ============================================================
+// FMEA / Risk
+// ============================================================
+
+model FmeaRecord {
+  id            String   @id @default(cuid())
+  fmeaId        String   @unique
+  stageName     String
+  failureMode   String
+  failureEffect String
+  potentialCause String
+  preventionControl String?
+  detectionControl String?
+  severity      Int      @default(7) // 1-10
+  occurrence    Int      @default(5)
+  detection     Int      @default(5)
+  rpn           Int      @default(175)
+  actionPriority String? // High, Medium, Low
+  recommendedAction String?
+  actionOwner   String?
+  actionDueDate DateTime?
+  residualSeverity Int?
+  residualOccurrence Int?
+  residualDetection Int?
+  residualRpn    Int?
+  status        String   @default("Open") // Open, In Progress, Action-Verified, Closed
+  lastReviewedAt DateTime?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([stageName])
+  @@index([rpn])
+}
+
+// ============================================================
+// Document Control
+// ============================================================
+
+model ControlledDocument {
+  id            String   @id @default(cuid())
+  docNumber     String   @unique // QCI/F/02/01
+  title         String
+  revision      String   // Rev.05
+  effectiveDate DateTime
+  status        String   @default("Released") // Draft, In Review, Released, Obsolete
+  docType       String   // checklist, plan, report, WPS, SOP
+  category      String?  // incoming, in-process, HDG, paint, packing
+  owner         String?
+  reviewDate    DateTime?
+  filePath      String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([status])
+  @@index([category])
+}
+
+// ============================================================
+// Incoming Material & Traceability
+// ============================================================
+
+model MaterialLot {
+  id            String   @id @default(cuid())
+  lotNumber     String   @unique
+  grnNumber     String?
+  materialType  String   // CRCA sheet, MS plate, Header pipe, Welding wire, Grit, Primer
+  supplier      String?
+  spec          String?
+  workOrderId   String?
+  workOrder     WorkOrder? @relation(fields: [workOrderId], references: [id])
+  quantity      Float
+  unit          String   // KGS, NOS, MTR
+  inspectionStatus String @default("Pending") // Pending, Accepted, Rejected, Under Review
+  mtcAvailable  Boolean  @default(false)
+  inspectedBy   String?
+  inspectedAt   DateTime?
+  createdAt     DateTime @default(now())
+
+  @@index([materialType])
+  @@index([inspectionStatus])
+}
+
+model ProductGenealogy {
+  id            String   @id @default(cuid())
+  workOrderId   String
+  workOrder     WorkOrder @relation(fields: [workOrderId], references: [id], onDelete: Cascade)
+  htuno         String   @unique
+  serialNo      Int
+  finCount      Int?
+  sheetThickness String?
+  coilMake      String?
+  coilNumber    String?
+  weldingWireBatch String?
+  primerBatch   String?
+  paintBatch    String?
+  zincDipDate   DateTime?
+  finalDft      Float?
+  releaseDate   DateTime?
+  createdAt     DateTime @default(now())
+
+  @@index([workOrderId])
+}
+
+// ============================================================
+// Equipment / Calibration
+// ============================================================
+
+model Equipment {
+  id            String   @id @default(cuid())
+  assetCode     String   @unique
+  name          String   // Micrometer M-101, Weld Checker WC-2
+  type          String   // measuring, welding, blasting, oven
+  location      String?
+  status        String   @default("Active") // Active, Under Maintenance, Calibrated, Out of Calibration
+  lastCalibration DateTime?
+  nextCalibration DateTime?
+  calibrationFrequency String? // "6 months", "12 months"
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+// ============================================================
+// Daily FPY (First Pass Yield) snapshot
+// ============================================================
+
+model DailyFpy {
+  id            String   @id @default(cuid())
+  date          DateTime
+  stage         String   // Rolling, Spot Welding, Erection, Leak Testing, HDG, Paint, Final
+  shift         String   // A, B
+  totalJobs     Int      @default(0)
+  okJobs        Int      @default(0)
+  holdJobs      Int      @default(0)
+  rejectedJobs  Int      @default(0)
+  reworkJobs    Int      @default(0)
+  topDefects    String?  // JSON
+  createdAt     DateTime @default(now())
+
+  @@unique([date, stage, shift])
+  @@index([date, stage])
+}
+
+// ============================================================
+// Users, Roles & Permissions (RBAC)
+// ============================================================
+
+model QmsUser {
+  id            String   @id @default(cuid())
+  username      String   @unique
+  password      String
+  name          String
+  email         String   @unique
+  role          String   @default("Operator") // Admin, QualityManager, QCInspector, ProductionSupervisor, Operator, AssistantManager
+  department    String?  // Quality, Production, HDG, Paint, Stores, Engineering
+  plant         String   @default("K2")
+  phone         String?
+  employeeId    String?
+  status        String   @default("Active") // Active, Suspended, Inactive
+  assignedStages String? // JSON array of stage codes this user is assigned to
+  managedStages String?  // JSON array of stage codes this user manages (for QC supervisors)
+  shiftPreference String? // A, B, General
+  permissions   String?  // JSON array of explicit permission keys
+  managerId     String?  // reports to this QmsUser
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  employee      Employee?  @relation("EmployeeQmsUser")
+
+  @@index([role])
+  @@index([department])
+}
+
+// ============================================================
+// Organization Hierarchy (Phase 1)
+// ============================================================
+
+model Department {
+  id            String   @id @default(cuid())
+  code          String   @unique // QUAL-FAB, QUAL-PAINT, PROD-FAB, MAINT, DISP
+  name          String   // Quality - Fabrication & Welding
+  plant         String   @default("K2")
+  headEmployeeId String? // FK to Employee (department head)
+  parentDeptId  String?  // for sub-departments
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  employees     Employee[]
+}
+
+model Employee {
+  id              String   @id @default(cuid())
+  employeeCode    String   @unique // HR code: HTR-DR-001, HTR-QC-009
+  name            String
+  designation     String   // Plant Director, DGM, Section Head, Line Manager, etc.
+  departmentId    String?
+  department      Department? @relation(fields: [departmentId], references: [id])
+  subDepartment   String?  // Fabrication, Paint Shop, Galvanizing, Internal Coating
+  plant           String   @default("K2")
+  operationalArea String?  // Line, machine group, or zone
+  reportsToId     String?  // direct reporting manager (Employee FK)
+  dottedLineMgrId String?  // functional / dotted-line manager (Employee FK)
+  qmsUserId       String?  @unique // FK to QmsUser login account — null for vacant positions
+  qmsUser         QmsUser?  @relation("EmployeeQmsUser", fields: [qmsUserId], references: [id])
+  qmsRole         String   // primary QMS role code (Director, DGM, LineManager, etc.)
+  additionalRoles String?  // JSON array of secondary role codes
+  shift           String?  // A, B, General
+  status          String   @default("Active") // Active, Suspended, Transferred, Inactive
+  effectiveStart  DateTime // assignment effective date
+  effectiveEnd    DateTime? // null = current; set on transfer/departure
+  contactPhone    String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Self-referential relations for hierarchy
+  reportsTo       Employee?  @relation("EmployeeReportsTo", fields: [reportsToId], references: [id])
+  directReports   Employee[] @relation("EmployeeReportsTo")
+  dottedManager   Employee?  @relation("EmployeeDottedLine", fields: [dottedLineMgrId], references: [id])
+  dottedReports   Employee[] @relation("EmployeeDottedLine")
+
+  // Reverse relations from other models that reference Employee
+  vacanciesInterim   Vacancy[]       @relation("VacancyInterimManager")
+  delegationsGiven   Delegation[]    @relation("DelegationDelegator")
+  delegationsReceived Delegation[]   @relation("DelegationDelegate")
+  rateApprovals      RateMaster[]    @relation("RateMasterApprover")
+  reworkInitiated    ReworkJobOrder[] @relation("ReworkInitiator")
+  reworkAssigned     ReworkJobOrder[] @relation("ReworkAssignee")
+  reworkReviewer     ReworkJobOrder[] @relation("ReworkReviewer")
+  reworkInspector    ReworkJobOrder[] @relation("ReworkInspector")
+  costLinesRecorded  ReworkCostLine[]
+  reworkEvents       ReworkEvent[]
+  auditEvents        AuditTrail[]
+
+  @@index([departmentId])
+  @@index([qmsRole])
+  @@index([status])
+}
+
+model Vacancy {
+  id              String   @id @default(cuid())
+  positionTitle   String   // Plant Head, Maintenance Head, Line Manager - Paint & Final
+  departmentId    String?
+  plant           String   @default("K2")
+  interimManagerId String? // Employee FK — who handles approvals while vacant
+  interimManager  Employee?  @relation("VacancyInterimManager", fields: [interimManagerId], references: [id])
+  status          String   @default("Open") // Open, Filled
+  openedAt        DateTime @default(now())
+  filledAt        DateTime?
+  filledByEmployeeId String? // Employee FK — who filled the vacancy
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([status])
+}
+
+model Delegation {
+  id              String   @id @default(cuid())
+  delegatorId     String   // Employee FK — who grants the delegation
+  delegator       Employee  @relation("DelegationDelegator", fields: [delegatorId], references: [id])
+  delegateId      String   // Employee FK — who receives the delegation
+  delegate        Employee  @relation("DelegationDelegate", fields: [delegateId], references: [id])
+  scope           String   // JSON: { modules: [], actions: [], dataScope: "", workflowAuthority: [] }
+  authorityLevel  String   // T1, T2, T3, T4 (matches approval tiers)
+  effectiveStart  DateTime
+  effectiveEnd    DateTime // delegation expires at this time
+  status          String   @default("Active") // Active, Expired, Revoked
+  reason          String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([status])
+  @@index([effectiveEnd])
+}
+
+// ============================================================
+// Rate Master (Phase 2 — for cost calculation)
+// ============================================================
+
+model RateMaster {
+  id              String   @id @default(cuid())
+  rateId          String   @unique // RATE-LAB-WELDER-A, RATE-MAT-CRCA-1.2
+  component       String   // Labour, Material, Machine, Consumables
+  category        String   // role+shift, materialType, assetCode, consumableCode
+  rate            Float    // rate per unit
+  unit            String   // hrs, nos, kg
+  effectiveStart  DateTime
+  effectiveEnd    DateTime? // null = currently effective
+  approvedById    String?
+  approvedBy      Employee? @relation("RateMasterApprover", fields: [approvedById], references: [id])
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  costLines       ReworkCostLine[]
+
+  @@index([component])
+  @@index([effectiveStart])
+}
+
+// ============================================================
+// Rework Job Order Management (Phase 2)
+// ============================================================
+
+model ReworkJobOrder {
+  id                    String   @id @default(cuid())
+  rwoNumber             String   @unique // RW-K2-2026-000123
+  defectReportId        String?  // self-referential to a DefectReport if separated
+  workOrderId           String?
+  workOrder             WorkOrder? @relation(fields: [workOrderId], references: [id])
+  htuNo                 String?  // product/component serial
+  originatingProcess    String   // process that generated the defect
+  detectionProcess      String   // stage where defect was detected
+  reworkProcess         String?  // process assigned to perform rework
+  defectCategory        String   // Leakage, Burr, DFT out, Welding defect
+  defectDescription     String
+  defectQuantity        Int
+  severity              String   @default("Major") // Critical, Major, Minor
+  status                String   @default("Reported") // see status-transition matrix
+  initiatedById         String?
+  initiator             Employee? @relation("ReworkInitiator", fields: [initiatedById], references: [id])
+  assignedToId          String?
+  assignee              Employee? @relation("ReworkAssignee", fields: [assignedToId], references: [id])
+  reviewerId            String?
+  reviewer              Employee? @relation("ReworkReviewer", fields: [reviewerId], references: [id])
+  inspectorId           String?
+  inspector             Employee? @relation("ReworkInspector", fields: [inspectorId], references: [id])
+  disposition           String?  // Rework, Repair, Scrap, Use As Is, Hold
+  estimatedCost         Float?
+  actualCost            Float?
+  approvedCost          Float?
+  plannedStart          DateTime?
+  plannedEnd            DateTime?
+  actualStart           DateTime?
+  actualEnd             DateTime?
+  currentLocation       String?
+  tagId                 String?
+  attemptNumber         Int      @default(1)
+  parentRwoId           String?  // for re-attempts (links to prior RWO)
+  holdReason            String?
+  closureJustification  String?
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  costLines             ReworkCostLine[]
+  events                ReworkEvent[]
+
+  @@index([status])
+  @@index([workOrderId])
+  @@index([originatingProcess])
+  @@index([severity])
+}
+
+model ReworkCostLine {
+  id              String   @id @default(cuid())
+  rwoId           String
+  rwo             ReworkJobOrder @relation(fields: [rwoId], references: [id], onDelete: Cascade)
+  component       String   // Labour, Material, Machine, Consumables, External, Other
+  description     String
+  quantity        Float
+  unit            String   // hrs, nos, kg
+  rateId          String?
+  rate            RateMaster? @relation(fields: [rateId], references: [id])
+  rateAmount      Float    // rate per unit (from RateMaster or manual entry)
+  amount          Float    // quantity * rateAmount (computed)
+  recordedById    String?
+  recordedBy      Employee? @relation(fields: [recordedById], references: [id])
+  approved        Boolean  @default(false)
+  createdAt       DateTime @default(now())
+
+  @@index([rwoId])
+  @@index([component])
+}
+
+model ReworkEvent {
+  id              String   @id @default(cuid())
+  rwoId           String
+  rwo             ReworkJobOrder @relation(fields: [rwoId], references: [id], onDelete: Cascade)
+  eventType       String   // CREATED, STATUS_CHANGE, TAG_SCAN, COST_CAPTURED, INSPECTION, APPROVAL, HOLD, REOPEN, CLOSED
+  fromStatus      String?
+  toStatus        String?
+  fromLocation    String?
+  toLocation      String?
+  employeeId      String?
+  employee        Employee? @relation(fields: [employeeId], references: [id])
+  timestamp       DateTime @default(now())
+  workstation     String?
+  relatedInspectionId String?
+  notes           String?
+
+  @@index([rwoId])
+  @@index([eventType])
+}
+
+// ============================================================
+// Audit Trail (Phase 1 — append-only log for all critical actions)
+// ============================================================
+
+model AuditTrail {
+  id              String   @id @default(cuid())
+  eventId         String   @unique // AUD-20260901T143022-X7K
+  actorEmployeeId String?
+  actor           Employee? @relation(fields: [actorEmployeeId], references: [id])
+  action          String   // CREATE, UPDATE, SUBMIT, APPROVE, REJECT, REOPEN, EXPORT, PERMISSION_CHANGE, DELEGATE
+  entityType      String   // ReworkJobOrder, NCR, Inspection, User, Delegation
+  entityId        String
+  beforeState     String?  // JSON snapshot
+  afterState      String?  // JSON snapshot
+  timestamp       DateTime @default(now())
+  ipAddress       String?
+  userAgent       String?
+
+  @@index([actorEmployeeId])
+  @@index([action])
+  @@index([entityType, entityId])
+  @@index([timestamp])
+}

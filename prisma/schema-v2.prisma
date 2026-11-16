@@ -1,0 +1,383 @@
+// =========================================================================
+// HIVE QMS v2.0 — First-Principles Prisma Schema
+// Target: MS SQL Server 2022 (SQLite for dev)
+// Design: Server-authoritative tolerance evaluation, immutable spec revisions,
+//         DAG genealogy, HTU state machine, partitioned telemetry historian
+// =========================================================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// =========================================================================
+// 1. MASTER DATA — Routes, Stages, Immutable Specification Versioning
+// =========================================================================
+
+model ManufacturingRoute {
+  routeCode    String   @id // 'K1', 'K2', 'K3', 'K4', 'INDO'
+  routeName    String
+  plantCode    String
+  productFamily String  // 'MS_STANDARD', 'STAINLESS_STEEL', 'HEAVY_DUTY', 'HEADER', 'TANK'
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+
+  stages       RouteStageMapping[]
+  workOrders   WorkOrder[]
+}
+
+model ProcessStage {
+  stageCode                String   @id // 'S01' through 'S38', 'GALV_01'..'GALV_06'
+  stageName                String
+  department               String   // 'ROLLING', 'WELDING', 'ERECTION', 'TESTING', etc.
+  isQualityGate            Boolean  @default(false)
+  requiresFirstPieceInsp   Boolean  @default(false)
+  requiresWPSValidation    Boolean  @default(false)
+  defaultSequenceOrder     Int
+
+  routeMappings  RouteStageMapping[]
+  inspections    InspectionRecord[]
+  ncRs           Nonconformance[]
+  machines       MachineAsset[]
+  documents      ControlledDocument[]
+}
+
+model RouteStageMapping {
+  id                  Int    @id @default(autoincrement())
+  routeCode           String
+  stageCode           String
+  sequenceNumber      Int
+  predecessorStageCode String?
+  mandatoryGate       Boolean @default(true)
+
+  route               ManufacturingRoute @relation(fields: [routeCode], references: [routeCode])
+  stage               ProcessStage       @relation(fields: [stageCode], references: [stageCode])
+  predecessorStage    ProcessStage?      @relation(fields: [predecessorStageCode], references: [stageCode])
+
+  @@unique([routeCode, stageCode])
+  @@index([routeCode])
+}
+
+model ControlledDocument {
+  docId             String   @id // 'QCI-F-02-01', 'QCI-F-05-13'
+  docTitle          String
+  docType           String   // 'CHECKLIST', 'SOP', 'WPS', 'TEST_REPORT'
+  stageCode         String?
+  currentRevisionNo String
+
+  stage             ProcessStage?   @relation(fields: [stageCode], references: [stageCode])
+  revisions         DocumentRevision[]
+
+  @@index([stageCode])
+}
+
+model DocumentRevision {
+  id              String   @id @default(uuid())
+  docId           String
+  revisionNo      String   // 'Rev.05', 'Rev.03'
+  effectiveFrom   DateTime
+  effectiveTo     DateTime? // NULL = currently active
+  changeSummary   String?
+  preparedBy      Int
+  approvedBy      Int?
+  status          String   @default("DRAFT") // 'DRAFT', 'UNDER_REVIEW', 'APPROVED', 'SUPERSEDED'
+  payloadHash     String   // SHA-256 of all child SpecCharacteristics
+
+  document        ControlledDocument @relation(fields: [docId], references: [docId])
+  characteristics SpecCharacteristic[]
+  inspections     InspectionRecord[]
+
+  @@unique([docId, revisionNo])
+  @@index([docId])
+}
+
+model SpecCharacteristic {
+  id                    String   @id @default(uuid())
+  revisionId            String
+  charCode              String   // 'NECK_TO_NECK_DIST', 'LEAK_TEST_PRESSURE', 'DFT_MICRONS'
+  charName              String
+  dataType              String   // 'NUMERIC_BOUNDED', 'NUMERIC_MIN', 'NUMERIC_MAX', 'BOOLEAN_PASS', 'TEXT_OBSERVATION', 'TITRATION_CALC'
+  engineeringUnit       String?  // 'mm', 'kg/cm2', 'L/min', 'A', 'V', 'microns', 'degC', 'sec', '%'
+  nominalValue          Float?
+  lowerSpecLimit        Float?   // LSL
+  upperSpecLimit        Float?   // USL
+  inclusiveLower        Boolean  @default(true) // true: >= LSL, false: > LSL
+  inclusiveUpper        Boolean  @default(true) // true: <= USL, false: < USL
+  isCTQ                 Boolean  @default(false)
+  dataSourceType        String   // 'PLC_AUTO', 'SMART_INSTRUMENT', 'MANUAL_ENTRY'
+  plcTagReference       String?
+  requiredInstrumentCat String?  // 'VERNIER_CALIPER', 'ELCOMETER_DFT', 'PRESSURE_GAUGE'
+  standardReference     String?  // 'IS 2062', 'AWS D1.1', 'ISO 3834-2'
+  displayOrder          Int
+
+  revision              DocumentRevision   @relation(fields: [revisionId], references: [id])
+  measurements          InspectionMeasurement[]
+
+  @@index([revisionId])
+}
+
+// =========================================================================
+// 2. TRACEABILITY — Material Lots, Work Orders, HTU State Machine
+// =========================================================================
+
+model MaterialLot {
+  id                    Int      @id @default(autoincrement())
+  lotNumber             String   @unique
+  grnNumber             String
+  materialCategory      String   // 'STEEL_COIL', 'HEADER_PIPE', 'WELD_WIRE', 'SHIELDING_GAS', etc.
+  supplierName          String
+  materialGrade         String   // 'IS 2062', 'IS 6911'
+  heatOrBatchNo         String
+  mtcVerified           Boolean  @default(false)
+  mtcFileUri            String?
+  calibrationOrShelfExpiry DateTime?
+  qcStatus              String   @default("PENDING") // 'PENDING','ACCEPTED','ON_HOLD','REJECTED','CONCESSION'
+  inspectedByUserId     Int?
+  inspectedAt           DateTime?
+  createdAt             DateTime @default(now())
+
+  steelCoilHtus         HeatTransferUnit[] @relation("SteelCoilLot")
+  weldWireHtus          HeatTransferUnit[] @relation("WeldWireLot")
+  primerHtus            HeatTransferUnit[] @relation("PrimerLot")
+  topCoatHtus           HeatTransferUnit[] @relation("TopCoatLot")
+  internalCoatingHtus   HeatTransferUnit[] @relation("InternalCoatingLot")
+}
+
+model WorkOrder {
+  id                    Int      @id @default(autoincrement())
+  woNumber              String   @unique // 'WO-3005'
+  erpSalesOrderNo       String
+  customerName          String
+  routeCode             String
+  finishType            String   // 'PAINTED_ONLY','HDG_ONLY','HDG_PLUS_PAINTED','INTERNAL_RD124','INTERNAL_IS741','INTERNAL_OIL_FLUSH'
+  plannedFinWidthMm     Int      // 300, 400, 520
+  plannedFinPitchMm     Int      // 2000, 2500, 3000
+  plannedFinCount       Int
+  targetHtuQuantity     Int
+  woStatus              String   @default("RELEASED") // 'RELEASED','IN_PROGRESS','ON_HOLD','COMPLETED','CLOSED'
+  activeHoldReason      String?
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  route                 ManufacturingRoute @relation(fields: [routeCode], references: [routeCode])
+  htus                  HeatTransferUnit[]
+  inspections           InspectionRecord[]
+  ncRs                  Nonconformance[]
+  cycleEvents           MachineCycleEvent[]
+
+  @@index([routeCode])
+  @@index([woStatus])
+}
+
+model HeatTransferUnit {
+  id                    BigInt   @id @default(autoincrement())
+  htuSerialNo           String   @unique // Barcode 'HTU-K2-001'
+  rfidTagUid            String?  @unique
+  workOrderId           Int
+  currentStageCode      String
+  unitState             String   @default("PENDING") // 'PENDING','IN_PROCESS','STAGE_PASSED','ON_HOLD','IN_REWORK','SCRAPPED','RELEASED_FOR_DISPATCH','DISPATCHED'
+  parentHeaderHtuId     BigInt?
+  steelCoilLotId        Int?
+  weldWireLotId         Int?
+  primerLotId           Int?
+  topCoatLotId          Int?
+  internalCoatingLotId  Int?
+  reworkCycleCount      Int      @default(0)
+  finalDftMicrons       Float?
+  releasedAt            DateTime?
+  releasedByUserId      Int?
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  workOrder             WorkOrder     @relation(fields: [workOrderId], references: [id])
+  currentStage          ProcessStage  @relation(fields: [currentStageCode], references: [stageCode])
+  parentHeader          HeatTransferUnit?  @relation("HeaderToRadiator", fields: [parentHeaderHtuId], references: [id])
+  childRadiators        HeatTransferUnit[]  @relation("HeaderToRadiator")
+  steelCoilLot          MaterialLot?  @relation("SteelCoilLot", fields: [steelCoilLotId], references: [id])
+  weldWireLot           MaterialLot?  @relation("WeldWireLot", fields: [weldWireLotId], references: [id])
+  primerLot             MaterialLot?  @relation("PrimerLot", fields: [primerLotId], references: [id])
+  topCoatLot            MaterialLot?  @relation("TopCoatLot", fields: [topCoatLotId], references: [id])
+  internalCoatingLot    MaterialLot?  @relation("InternalCoatingLot", fields: [internalCoatingLotId], references: [id])
+  inspections           InspectionRecord[]
+  ncRs                  Nonconformance[]
+  cycleEvents           MachineCycleEvent[]
+
+  @@index([workOrderId])
+  @@index([unitState])
+  @@index([currentStageCode])
+}
+
+// =========================================================================
+// 3. INSPECTIONS, MEASUREMENTS, INSTRUMENTS & WELDER QUALIFICATIONS
+// =========================================================================
+
+model MeasuringInstrument {
+  id                    Int      @id @default(autoincrement())
+  assetTag              String   @unique // 'ELCO-K2-04', 'PG-LEAK-02'
+  instrumentCategory    String
+  makeAndModel          String
+  lastCalibratedDate    DateTime
+  calibrationDueDate    DateTime
+  calibrationCertUri    String?
+  status                String   @default("VALID") // 'VALID','DUE_SOON','EXPIRED','OUT_OF_SERVICE'
+
+  measurements          InspectionMeasurement[]
+}
+
+model WelderQualification {
+  welderUserId          Int      @id
+  welderStampCode       String   @unique
+  qualifiedProcess      String   // 'GTAW_TIG','GMAW_MAG_CO2','RSW_SPOT','RSEW_SEAM'
+  wpsReference          String   // 'VAA/HTR/CS/WPS'
+  qualificationStandard String   // 'ASME IX','AWS D1.1','ISO 9606-1'
+  validUntilDate        DateTime
+  lastContinuityVerifiedDate DateTime
+}
+
+model InspectionRecord {
+  id                    BigInt   @id @default(autoincrement())
+  inspectionNumber      String   @unique // 'INS-2026-XXXX'
+  workOrderId           Int
+  htuId                 BigInt
+  stageCode             String
+  revisionId            String
+  inspectionType        String   // 'FIRST_PIECE','IN_PROCESS','PATROL','RETEST_AFTER_REWORK','FINAL_RELEASE'
+  shiftCode             String   // 'A','B','C'
+  machineId             String?
+  operatorUserId        Int
+  inspectorUserId       Int?
+  supervisorUserId      Int?
+  supervisorDecision    String   @default("PENDING") // 'PENDING','APPROVED','DECLINED'
+  overallEvaluation     String   // 'PASS','FAIL','INDETERMINATE'
+  ctqFailed             Boolean  @default(false)
+  recordHash            String   // SHA-256 tamper-evident signature
+  submittedAt           DateTime @default(now())
+  verifiedAt            DateTime?
+
+  workOrder             WorkOrder       @relation(fields: [workOrderId], references: [id])
+  htu                   HeatTransferUnit @relation(fields: [htuId], references: [id])
+  stage                 ProcessStage    @relation(fields: [stageCode], references: [stageCode])
+  revision              DocumentRevision @relation(fields: [revisionId], references: [id])
+  measurements          InspectionMeasurement[]
+  ncr                   Nonconformance?
+
+  @@index([workOrderId, stageCode])
+  @@index([htuId])
+  @@index([overallEvaluation])
+}
+
+model InspectionMeasurement {
+  id                    BigInt   @id @default(autoincrement())
+  inspectionId          BigInt
+  characteristicId      String
+  numericValue          Float?
+  booleanObservation    Boolean?
+  textObservation       String?
+  appliedLsl            Float?   // Denormalized from SpecCharacteristic at execution time
+  appliedUsl            Float?
+  evaluationStatus      String   // 'PASS','FAIL','INDETERMINATE'
+  captureSource         String   // 'PLC_TAG','BLE_INSTRUMENT','MANUAL_INPUT'
+  instrumentId          Int?
+  plcTelemetryEventId   BigInt?
+  evidenceMediaUri      String?
+
+  inspection            InspectionRecord   @relation(fields: [inspectionId], references: [id])
+  characteristic        SpecCharacteristic @relation(fields: [characteristicId], references: [id])
+  instrument            MeasuringInstrument? @relation(fields: [instrumentId], references: [id])
+
+  @@index([inspectionId])
+  @@index([characteristicId])
+}
+
+// =========================================================================
+// 4. NONCONFORMANCE (NCR), RCA, CAPA & COPQ
+// =========================================================================
+
+model Nonconformance {
+  id                    BigInt   @id @default(autoincrement())
+  ncrNumber             String   @unique // 'NCR-2026-XXX'
+  inspectionId          BigInt?
+  workOrderId           Int
+  htuId                 BigInt
+  stageCode             String
+  defectCategory        String   // 'DIMENSIONAL','WELD_LEAK','SPATTER','COATING_DFT','SURFACE_PROFILE','CHEMICAL_TITRATION'
+  severity              String   // 'CRITICAL','MAJOR','MINOR'
+  ncrStatus             String   @default("OPEN") // 'OPEN','CONTAINED','INVESTIGATING','CAPA_OPEN','EFFECTIVENESS_CHECK','CLOSED'
+  containmentAction     String
+  dispositionType       String?  // 'REWORK','SCRAP','USE_AS_IS_CONCESSION','RETURN_TO_VENDOR'
+  dispositionApprovedBy Int?
+  rcaFishboneJson       String?  // Structured 6M JSON
+  rcaFiveWhysJson       String?  // Array of Why1..Why5 + RootCause
+  capaActionPlan        String?
+  capaOwnerUserId       Int?
+  capaDueDate           DateTime?
+  effectivenessVerifiedBy Int?
+  effectivenessNotes    String?
+  copqScrapCostInr      Float    @default(0)
+  copqReworkLaborCostInr Float   @default(0)
+  copqDowntimeCostInr   Float    @default(0)
+  openedAt              DateTime @default(now())
+  closedAt              DateTime?
+
+  inspection            InspectionRecord? @relation(fields: [inspectionId], references: [id])
+  workOrder             WorkOrder       @relation(fields: [workOrderId], references: [id])
+  htu                   HeatTransferUnit @relation(fields: [htuId], references: [id])
+  stage                 ProcessStage    @relation(fields: [stageCode], references: [stageCode])
+
+  @@index([workOrderId])
+  @@index([htuId])
+  @@index([ncrStatus])
+  @@index([severity])
+}
+
+// =========================================================================
+// 5. PLC MACHINE REGISTRY & TIME-SERIES TELEMETRY HISTORIAN
+// =========================================================================
+
+model MachineAsset {
+  machineId             String   @id // 'K2-M01-FLIP', 'K2-M04-CROSS_SEAM'
+  srNo                  Int
+  machineName           String
+  stageCode             String
+  plcIp                 String?  // '192.168.5.42'
+  enetIp                String?
+  hmiIp                 String?
+  roboIp                String?
+  froniusIp             String?
+  protocol              String   // 'MITSUBISHI_MC_SLMP','MODBUS_TCP','OPC_UA','FRONIUS_OPEN_PROTOCOL'
+  pollingIntervalMs     Int      @default(500)
+  isConnected           Boolean  @default(false)
+  lastHeartbeatAt       DateTime?
+
+  stage                 ProcessStage     @relation(fields: [stageCode], references: [stageCode])
+  cycleEvents           MachineCycleEvent[]
+
+  @@index([stageCode])
+}
+
+model MachineCycleEvent {
+  id                    BigInt   @id @default(autoincrement())
+  machineId             String
+  htuId                 BigInt?
+  workOrderId           Int?
+  cycleStartTimestamp   DateTime
+  cycleEndTimestamp     DateTime?
+  machineMode           String   // 'AUTO','MANUAL'
+  weldMode              String   // 'WELD','NO_WELD'
+  timerScheduleBcd      Int?     // Decoded BCD program number
+  telemetrySnapshotJson String   // Full key-value snapshot of analog/digital tags
+  alarmFlagsJson        String?  // Active faults
+  edgeSequenceNo        BigInt   // Deduplication key from Edge SQLite buffer
+
+  machine               MachineAsset     @relation(fields: [machineId], references: [machineId])
+  htu                   HeatTransferUnit? @relation(fields: [htuId], references: [id])
+  workOrder             WorkOrder?       @relation(fields: [workOrderId], references: [id])
+
+  @@unique([machineId, edgeSequenceNo])
+  @@index([htuId, cycleStartTimestamp])
+  @@index([workOrderId])
+}

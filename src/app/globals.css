@@ -1,0 +1,586 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --color-background: var(--canvas);
+  --color-foreground: var(--ink);
+  --font-sans: "Inter", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+
+  --color-primary: var(--primary);
+  --color-primary-active: var(--primary-active);
+  --color-canvas: var(--canvas);
+  --color-canvas-soft: var(--canvas-soft);
+  --color-surface-card: var(--surface-card);
+  --color-surface-strong: var(--surface-strong);
+  --color-ink: var(--ink);
+  --color-body: var(--body);
+  --color-body-strong: var(--body-strong);
+  --color-muted: var(--muted);
+  --color-muted-soft: var(--muted-soft);
+  --color-on-primary: var(--on-primary);
+  --color-hairline: var(--hairline);
+  --color-hairline-soft: var(--hairline-soft);
+  --color-hairline-strong: var(--hairline-strong);
+  --color-success: var(--semantic-success);
+  --color-error: var(--semantic-error);
+
+  /* Timeline pastels - for in-product agent visualizations only */
+  --color-tl-thinking: var(--timeline-thinking);
+  --color-tl-grep: var(--timeline-grep);
+  --color-tl-read: var(--timeline-read);
+  --color-tl-edit: var(--timeline-edit);
+  --color-tl-done: var(--timeline-done);
+
+  --color-card: var(--surface-card);
+  --color-card-foreground: var(--ink);
+  --color-popover: var(--surface-card);
+  --color-popover-foreground: var(--ink);
+  --color-primary-foreground: var(--on-primary);
+  --color-secondary: var(--surface-strong);
+  --color-secondary-foreground: var(--ink);
+  --color-muted-foreground: var(--muted);
+  --color-accent: var(--canvas-soft);
+  --color-accent-foreground: var(--ink);
+  --color-destructive: var(--semantic-error);
+  --color-destructive-foreground: #ffffff;
+  --color-border: var(--hairline);
+  --color-input: var(--hairline);
+  --color-ring: var(--primary);
+
+  /* Swiss-tight radii: 2 / 4 / 6 / 8 only */
+  --radius-sm: 2px;
+  --radius-md: 4px;
+  --radius-lg: 6px;
+  --radius-xl: 8px;
+  --radius-2xl: 10px;
+}
+
+:root {
+  /* HIVE design system v6 - Hi-Tech Official Brand Guidelines
+   * Primary: Navy Blue #083260, Sustainable Green #159640, Black, White
+   * Secondary accents: Burnt Orange #D36E2E, Moss Green #A5B76C,
+   *   Slate Blue #576590, Caramel #B58B45
+   * Logo colours preserved (do not recolour). Hairline depth. Poppins type. */
+
+  --primary: #083260;           /* HT Navy Blue - primary brand colour */
+  --primary-active: #06254a;    /* darker press state */
+  --ht-green: #159640;          /* HT Sustainable Green - secondary brand */
+  --canvas: #ffffff;            /* pure white page floor */
+  --canvas-soft: #f7f8fa;       /* pane background, slight cool tint */
+  --surface-card: #ffffff;      /* pure white card */
+  --surface-strong: #eef1f5;    /* badge pills, subdued blocks */
+  --ink: #000000;               /* HT Black - true black for headings */
+  --body: #4a4a4a;              /* running text */
+  --body-strong: #000000;       /* same as ink */
+  --muted: #6b7280;             /* sub-titles */
+  --muted-soft: #9ca3af;        /* disabled */
+  --on-primary: #ffffff;        /* white on navy */
+  --hairline: #e4e4e7;          /* 1px divider */
+  --hairline-soft: #f0f1f3;     /* lighter divider */
+  --hairline-strong: #d1d5db;   /* stronger panel outline */
+  --divider-grey: #b7b7b7;      /* official grey for HTR|HTT logo divider */
+
+  /* HT Secondary palette - supporting accents only */
+  --ht-burnt-orange: #D36E2E;   /* Burnt Orange - alerts, highlights */
+  --ht-moss-green: #A5B76C;     /* Moss Green - soft accents */
+  --ht-slate-blue: #576590;     /* Slate Blue - informational */
+  --ht-caramel: #B58B45;        /* Caramel - warm accents */
+
+  /* Timeline pastels - in-product agent visualizations only */
+  --timeline-thinking: #d8c8b8; /* warm sand */
+  --timeline-grep: #b8d4ba;     /* sage */
+  --timeline-read: #b0c4dc;     /* mist blue */
+  --timeline-edit: #cec0dc;     /* lavender */
+  --timeline-done: #c8a868;     /* warm gold */
+
+  /* Semantic - aligned with HT brand */
+  --semantic-success: #159640;  /* HT Sustainable Green */
+  --semantic-error: #a04545;    /* brick red - for failures */
+  --semantic-warn: #B58B45;     /* HT Caramel - for warnings */
+
+  /* shadcn compatibility */
+  --radius: 4px;
+  --background: #ffffff;
+  --foreground: #000000;
+  --card: #ffffff;
+  --card-foreground: #000000;
+  --popover: #ffffff;
+  --popover-foreground: #000000;
+  --primary-foreground: #ffffff;
+  --secondary: #eef1f5;
+  --secondary-foreground: #000000;
+  --muted-foreground: #6b7280;
+  --accent: #f7f8fa;
+  --accent-foreground: #000000;
+  --destructive: #a04545;
+  --destructive-foreground: #ffffff;
+  --border: #e4e4e7;
+  --input: #e4e4e7;
+  --ring: #083260;
+}
+
+.dark {
+  --canvas: #0c0c0e;
+  --canvas-soft: #161618;
+  --surface-card: #1a1a1c;
+  --surface-strong: #262629;
+  --ink: #fafafa;
+  --body: #c4c4c8;
+  --body-strong: #fafafa;
+  --muted: #8a8a90;
+  --muted-soft: #5a5a60;
+  --hairline: #2a2a2d;
+  --hairline-soft: #1a1a1c;
+  --hairline-strong: #3a3a3d;
+  --background: #0c0c0e;
+  --foreground: #fafafa;
+  --card: #1a1a1c;
+  --card-foreground: #fafafa;
+  --popover: #1a1a1c;
+  --popover-foreground: #fafafa;
+  --border: #2a2a2d;
+  --input: #2a2a2d;
+}
+
+@layer base {
+  * {
+    border-color: var(--hairline);
+  }
+  html, body {
+    background: var(--canvas);
+    color: var(--ink);
+    font-family: "Poppins", "Inter", system-ui, "Helvetica Neue", Helvetica, Arial, sans-serif;
+    font-weight: 400;
+    font-feature-settings: "tnum";
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    letter-spacing: -0.005em;
+  }
+  /* Selection - HT Navy tint */
+  ::selection { background: #08326020; color: var(--ink); }
+}
+
+/* Poppins-inspired type scale - display at 400, generous tracking on labels.
+ * Poppins weights used: Light(300), Regular(400), Medium(500), Semibold(600), Bold(700), ExtraBold(800). */
+.t-display-mega  { font-size: 52px; font-weight: 300; line-height: 1.05; letter-spacing: -0.035em; }
+.t-display-lg    { font-size: 34px; font-weight: 300; line-height: 1.15; letter-spacing: -0.025em; }
+.t-display-md    { font-size: 24px; font-weight: 400; line-height: 1.25; letter-spacing: -0.015em; }
+.t-display-sm    { font-size: 20px; font-weight: 400; line-height: 1.3;  letter-spacing: -0.01em; }
+.t-title-md      { font-size: 17px; font-weight: 600; line-height: 1.4;  letter-spacing: -0.005em; }
+.t-title-sm      { font-size: 15px; font-weight: 600; line-height: 1.4;  letter-spacing: -0.005em; }
+.t-body-md       { font-size: 14.5px; font-weight: 400; line-height: 1.55; }
+.t-body-sm       { font-size: 13.5px; font-weight: 400; line-height: 1.55; }
+.t-body-tracked  { font-size: 14.5px; font-weight: 400; line-height: 1.55; letter-spacing: 0.005em; }
+.t-caption       { font-size: 12.5px; font-weight: 400; line-height: 1.45; }
+.t-label         { font-size: 10.5px; font-weight: 600; line-height: 1.4; letter-spacing: 0.12em; text-transform: uppercase; }
+.t-code          { font-family: "JetBrains Mono", ui-monospace, monospace; font-size: 12.5px; font-weight: 400; line-height: 1.5; }
+.t-num           { font-family: "JetBrains Mono", ui-monospace, monospace; font-variant-numeric: tabular-nums; }
+.t-button        { font-size: 13.5px; font-weight: 500; line-height: 1.0; letter-spacing: -0.005em; }
+.t-nav           { font-size: 13.5px; font-weight: 500; line-height: 1.4; letter-spacing: -0.005em; }
+
+@media (max-width: 768px) {
+  .t-display-mega { font-size: 30px; }
+  .t-display-lg   { font-size: 26px; }
+  .t-display-md   { font-size: 21px; }
+  .t-display-sm   { font-size: 18px; }
+}
+
+/* Custom scrollbar - minimal, almost invisible */
+.scroll-fine::-webkit-scrollbar { width: 6px; height: 6px; }
+.scroll-fine::-webkit-scrollbar-track { background: transparent; }
+.scroll-fine::-webkit-scrollbar-thumb { background: var(--hairline-strong); border-radius: 3px; }
+.scroll-fine::-webkit-scrollbar-thumb:hover { background: var(--muted-soft); }
+
+/* Hairline rule - used between sections */
+.hairline { height: 1px; background: var(--hairline); border: 0; }
+.hairline-soft { height: 1px; background: var(--hairline-soft); border: 0; }
+
+/* Swiss-style numbered marker */
+.num-marker {
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+  font-size: 10.5px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+}
+
+/* Subtle dot indicator */
+.dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; }
+.dot-sm { width: 5px; height: 5px; }
+
+/* ============================================================
+   Responsive Design - ensure all screens work on tablet/phone/PC
+   ============================================================ */
+
+/* Prevent horizontal overflow without breaking position:sticky on sidebar. */
+html {
+  overflow-x: clip;
+  max-width: 100vw;
+}
+body {
+  overflow-x: clip;
+  max-width: 100vw;
+}
+
+/* Tables: horizontal scroll on small screens instead of squishing */
+table {
+  width: 100%;
+}
+@media (max-width: 768px) {
+  .rounded-xl table,
+  .rounded-lg table,
+  [class*="overflow-hidden"] table {
+    display: block;
+    overflow-x: auto;
+    white-space: nowrap;
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+/* Sheet/drawer: full width on mobile */
+@media (max-width: 767px) {
+  [data-slot="sheet-content"] {
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+  /* Sheet body padding: reduce on mobile */
+  [data-slot="sheet-content"] .p-6 { padding: 1rem !important; }
+  [data-slot="sheet-content"] .px-6 { padding-left: 1rem !important; padding-right: 1rem !important; }
+}
+
+/* Grid layouts: collapse properly on smaller screens */
+@media (max-width: 640px) {
+  /* Force single column for 2-col grids in drawers/forms */
+  .grid-cols-2 { grid-template-columns: 1fr !important; }
+  /* Dashboard KPI cards: 2 columns on phone */
+  .grid-cols-4 { grid-template-columns: repeat(2, 1fr) !important; }
+  .grid-cols-5 { grid-template-columns: repeat(2, 1fr) !important; }
+  .grid-cols-6 { grid-template-columns: repeat(2, 1fr) !important; }
+  .lg\:grid-cols-3,
+  .lg\:grid-cols-4,
+  .lg\:grid-cols-5,
+  .lg\:grid-cols-6 { grid-template-columns: 1fr !important; }
+  /* Form grids inside sheets: always single column on phone */
+  [data-slot="sheet-content"] .grid-cols-2 { grid-template-columns: 1fr !important; }
+}
+
+/* Header: hide non-essential elements on phones */
+@media (max-width: 640px) {
+  .header-search { display: none !important; }
+}
+
+/* Page header: reduce padding on mobile */
+@media (max-width: 768px) {
+  .px-5 { padding-left: 1rem !important; padding-right: 1rem !important; }
+  .md\:px-10 { padding-left: 1rem !important; padding-right: 1rem !important; }
+  .pt-8 { padding-top: 1.5rem !important; }
+  .md\:pt-12 { padding-top: 1.5rem !important; }
+  .p-4 { padding: 1rem !important; }
+  .md\:p-8 { padding: 1rem !important; }
+}
+
+/* Flex layouts: prevent overflow on mobile */
+@media (max-width: 640px) {
+  .flex.items-center.gap-3,
+  .flex.items-center.gap-2 {
+    flex-wrap: wrap;
+  }
+  /* Action buttons in page headers: wrap */
+  .flex.items-center.gap-2 > button {
+    font-size: 12px;
+    padding: 0 0.5rem;
+    height: 32px;
+  }
+  /* Hide text labels on header buttons, keep icons */
+  .header-search ~ div .hidden.lg\:inline { display: none !important; }
+}
+
+/* SO expandable rows: stack vertically on mobile */
+@media (max-width: 768px) {
+  .flex.items-center.gap-3.p-4 {
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+}
+
+/* Touch-friendly: increase tap target sizes on touch devices */
+@media (pointer: coarse) {
+  button, .t-nav button, [role="button"] {
+    min-height: 36px;
+    min-width: 36px;
+  }
+}
+
+/* Animations */
+@keyframes reveal-up {
+  from { opacity: 0; transform: translateY(3px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.reveal-up { animation: reveal-up 0.22s cubic-bezier(0.22, 1, 0.36, 1) both; }
+
+@keyframes spin-slow { to { transform: rotate(360deg); } }
+.spin-slow { animation: spin-slow 0.8s linear infinite; }
+
+@keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
+.fade-in { animation: fade-in 0.18s ease both; }
+
+@keyframes pulse-soft {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+.pulse-soft { animation: pulse-soft 2s ease-in-out infinite; }
+
+/* Focus ring - Swiss-tight */
+*:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+/* Print styles - fixes the large left-side gap caused by the sticky sidebar
+   and header still occupying layout space under `visibility:hidden`.
+   We switch to `display:none` for those elements so the printed page flows
+   from the true left edge, and flatten the Sheet drawer so its right-side
+   positioning / max-width doesn't clip the report content. */
+@media print {
+  /* Hide non-printable layout chrome entirely (frees the space it occupied) */
+  header,
+  aside,
+  .no-print {
+    display: none !important;
+  }
+
+  /* Dim everything else, then reveal only the print area */
+  body * { visibility: hidden; }
+  .print-area,
+  .print-area * { visibility: visible; }
+
+  /* Flatten the Sheet drawer so the report sits at the true left edge,
+     full width, with no transform / shadow / border artifacts. */
+  .print-area {
+    position: absolute !important;
+    left: 0 !important;
+    top: 0 !important;
+    width: 100% !important;
+    max-width: none !important;
+    margin: 0 !important;
+    padding: 16px !important;
+    transform: none !important;
+    border: none !important;
+    box-shadow: none !important;
+    background: #ffffff !important;
+  }
+
+  /* The parent SheetContent wrapper must not constrain the print area */
+  [data-slot="sheet-content"],
+  [data-slot="sheet-overlay"] {
+    position: static !important;
+    width: 100% !important;
+    max-width: none !important;
+    height: auto !important;
+    transform: none !important;
+    border: none !important;
+    box-shadow: none !important;
+    background: #ffffff !important;
+  }
+
+  /* Make sure the body itself has no left padding/margin */
+  body, html {
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #ffffff !important;
+  }
+
+  /* Allow content to break across pages naturally */
+  .print-area table { page-break-inside: auto; }
+  .print-area tr { page-break-inside: avoid; page-break-after: auto; }
+  .print-area thead { display: table-header-group; }
+}
+
+/* ============================================================
+   Tooltip System v2 - CSS-based, fixed positioning, no overlap
+   Uses position: fixed on the ::before pseudo-element relative to
+   the viewport, computed via JS-free CSS anchor positioning fallback.
+   Key fixes:
+   - Default position is "top" with smart edge avoidance
+   - max-width capped at 240px to prevent overflow
+   - z-index raised above tour overlay
+   - Arrow positioning aligned with tooltip center
+   ============================================================ */
+[data-tooltip] {
+  position: relative;
+}
+
+/* Tooltip bubble */
+[data-tooltip]::before {
+  content: attr(data-tooltip);
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--ink, #18181b);
+  color: var(--canvas, #ffffff);
+  padding: 4px 8px;
+  border-radius: 3px;
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1.35;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.12s ease 0.15s;
+  z-index: 10001;
+  font-family: "Inter", "Poppins", sans-serif;
+  letter-spacing: 0;
+  text-transform: none;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+  max-width: 200px;
+  min-width: 40px;
+  max-height: 80px;
+  text-align: center;
+}
+
+/* Tooltip arrow */
+[data-tooltip]::after {
+  content: "";
+  position: absolute;
+  bottom: calc(100% + 4px);
+  left: 50%;
+  transform: translateX(-50%);
+  border: 4px solid transparent;
+  border-top-color: var(--ink, #18181b);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.12s ease 0.2s;
+  z-index: 10001;
+}
+
+/* Show on hover with slight delay to prevent flicker */
+[data-tooltip]:hover::before,
+[data-tooltip]:hover::after {
+  opacity: 1;
+}
+
+/* Also show on focus for keyboard users */
+[data-tooltip]:focus-visible::before,
+[data-tooltip]:focus-visible::after {
+  opacity: 1;
+}
+
+/* ── Position variants ── */
+
+/* BOTTOM - tooltip appears below the element */
+[data-tooltip-pos="bottom"]::before {
+  bottom: auto;
+  top: calc(100% + 8px);
+}
+[data-tooltip-pos="bottom"]::after {
+  bottom: auto;
+  top: calc(100% + 4px);
+  border-top-color: transparent;
+  border-bottom-color: var(--ink, #18181b);
+}
+
+/* RIGHT - tooltip appears to the right */
+[data-tooltip-pos="right"]::before {
+  bottom: auto;
+  top: 50%;
+  left: calc(100% + 8px);
+  transform: translateY(-50%);
+  text-align: left;
+}
+[data-tooltip-pos="right"]::after {
+  bottom: auto;
+  top: 50%;
+  left: calc(100% + 4px);
+  transform: translateY(-50%);
+  border-top-color: transparent;
+  border-left-color: var(--ink, #18181b);
+}
+
+/* LEFT - tooltip appears to the left */
+[data-tooltip-pos="left"]::before {
+  bottom: auto;
+  top: 50%;
+  left: auto;
+  right: calc(100% + 8px);
+  transform: translateY(-50%);
+  text-align: right;
+}
+[data-tooltip-pos="left"]::after {
+  bottom: auto;
+  top: 50%;
+  left: auto;
+  right: calc(100% + 4px);
+  transform: translateY(-50%);
+  border-top-color: transparent;
+  border-right-color: var(--ink, #18181b);
+}
+
+/* Dark mode tooltip color adjustment */
+.dark [data-tooltip]::before {
+  background: var(--surface-strong, #262629);
+  color: var(--ink, #fafafa);
+  border: 1px solid var(--hairline-strong, #3a3a3d);
+}
+.dark [data-tooltip]::after {
+  border-top-color: var(--surface-strong, #262629);
+}
+.dark [data-tooltip-pos="bottom"]::after {
+  border-top-color: transparent;
+  border-bottom-color: var(--surface-strong, #262629);
+}
+.dark [data-tooltip-pos="right"]::after {
+  border-top-color: transparent;
+  border-left-color: var(--surface-strong, #262629);
+}
+.dark [data-tooltip-pos="left"]::after {
+  border-top-color: transparent;
+  border-right-color: var(--surface-strong, #262629);
+}
+
+/* ============================================================
+   Product Tour Guide - overlay highlight system
+   ============================================================ */
+.tour-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 9998;
+  pointer-events: none;
+}
+.tour-highlight {
+  position: relative;
+  z-index: 9999;
+  box-shadow: 0 0 0 4px #083260, 0 0 20px rgba(8, 50, 96, 0.4);
+  border-radius: 4px;
+  background: var(--surface-card);
+}
+.tour-popover {
+  position: fixed;
+  z-index: 10000;
+  background: var(--surface-card);
+  border: 1px solid var(--hairline);
+  border-radius: 8px;
+  padding: 16px;
+  max-width: 320px;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.15);
+}
+.tour-dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--hairline-strong);
+  margin: 0 2px;
+}
+.tour-dot.active {
+  background: var(--primary);
+  width: 20px;
+  border-radius: 3px;
+}
