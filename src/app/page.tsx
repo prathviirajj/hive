@@ -76,6 +76,7 @@ import {
   DashboardInspectionReportsWidget,
   STAGE_CATALOG,
 } from "@/components/qms/stage-inspection-reports";
+import { ProcessFlowInteractive } from "@/components/qms/process-flow-interactive";
 import masterStageCharacteristics from "@/lib/master-stage-characteristics.json";
 
 // ============================================================
@@ -8868,6 +8869,7 @@ const MANUFACTURING_ZONES = [
 ];
 
 function ProcessFlowModule({ plant, plantInfo, user, onNavigate, onInspect }: { plant: string; plantInfo: any; user: User; onNavigate: (k: ModuleKey) => void; onInspect: (stageCode: string | null) => void }) {
+  const [viewMode, setViewMode] = useState<"interactive" | "zones">("interactive");
   const [selectedZoneId, setSelectedZoneId] = useState<string>("all");
   const [expandedStages, setExpandedStages] = useState<Record<string, boolean>>({});
   const [stageSearch, setStageSearch] = useState<string>("");
@@ -8925,9 +8927,49 @@ function ProcessFlowModule({ plant, plantInfo, user, onNavigate, onInspect }: { 
       />
 
       <div className="p-4 md:p-8 space-y-6">
+        {/* View Switcher: Interactive Sequence & Formulas vs 6-Zone Directory */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-2 rounded-xl bg-[var(--canvas-soft)] border border-[var(--hairline)]">
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <button
+              type="button"
+              onClick={() => setViewMode("interactive")}
+              className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-2 transition-all ${
+                viewMode === "interactive"
+                  ? "bg-[var(--surface-card)] text-[var(--ink)] shadow-xs border border-[var(--hairline)]"
+                  : "text-[var(--muted)] hover:text-[var(--ink)]"
+              }`}
+            >
+              <Workflow size={14} className="text-blue-500" />
+              <span>Corrected 18-Stage Sequence & Math</span>
+              <span className="px-1.5 py-0.2 rounded text-[10px] font-mono bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300 font-bold">
+                NEW USERFLOW
+              </span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setViewMode("zones")}
+              className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-2 transition-all ${
+                viewMode === "zones"
+                  ? "bg-[var(--surface-card)] text-[var(--ink)] shadow-xs border border-[var(--hairline)]"
+                  : "text-[var(--muted)] hover:text-[var(--ink)]"
+              }`}
+            >
+              <Layers size={14} />
+              <span>6-Zone Stage Directory</span>
+            </button>
+          </div>
 
-        {/* 6-Zone Interactive Pipeline Selector */}
-        <div className="space-y-2">
+          <div className="text-[11px] text-[var(--muted)] px-2">
+            {viewMode === "interactive" ? "Showing parallel fin/header fabrication converging into core assembly & testing" : "Showing stage-by-stage QC checklist matrix"}
+          </div>
+        </div>
+
+        {viewMode === "interactive" ? (
+          <ProcessFlowInteractive onInspect={onInspect} />
+        ) : (
+          <>
+            {/* 6-Zone Interactive Pipeline Selector */}
+            <div className="space-y-2">
           <div className="flex items-center justify-between">
             <div className="t-label" style={{ color: "var(--muted)" }}>MANUFACTURING ZONES (MES-QMS PIPELINE)</div>
             <div className="text-[11px] t-label" style={{ color: "var(--muted-soft)" }}>Click a zone to focus operational stages</div>
@@ -9228,6 +9270,8 @@ function ProcessFlowModule({ plant, plantInfo, user, onNavigate, onInspect }: { 
             </p>
           </div>
         </div>
+          </>
+        )}
       </div>
     </div>
   );
