@@ -2057,6 +2057,233 @@ function ImportPODialog({ plant, onClose, onImported }: { plant: string; onClose
   );
 }
 
+// ============================================================
+// Work Order Technical & Engineering Profile View
+// ============================================================
+function WorkOrderProfileView({ wo, units, inspections }: { wo: any; units: any[]; inspections: any[] }) {
+  // Parse dimensions from size (e.g., "1700 X 520 X 13 + 3 x 1.20" or "2000 X 520 X 15 + 3 x 1.00")
+  const sizeParts = (wo.size || "").split(/x|X|\+/).map((s: string) => s.trim());
+  const ccDistance = sizeParts[0] ? `${sizeParts[0]} mm` : "1700 mm";
+  const finWidth = sizeParts[1] ? `${sizeParts[1]} mm` : "520 mm";
+  const finCount = sizeParts[2] ? `${sizeParts[2]} Elements` : "13 Elements";
+  const sheetThick = (wo.size || "").includes("1.2") ? "1.20 mm (±0.03 mm)" : "1.00 mm (±0.03 mm)";
+  const isHdg = (wo.finishType || "").toLowerCase().includes("hdg") || (wo.finishType || "").toLowerCase().includes("galv");
+
+  const passedUnits = units.filter((u: any) => u.status === "QC Released").length;
+  const inProgressUnits = units.filter((u: any) => u.status === "In Progress" || u.status === "Pending Start").length;
+  const defectiveUnits = units.filter((u: any) => u.status === "Failed / Contained" || u.status === "Under Rework").length;
+
+  return (
+    <div className="space-y-4">
+      {/* Header Profile Summary */}
+      <div className="rounded-xl p-4 flex flex-col md:flex-row md:items-center justify-between gap-3" style={{ backgroundColor: "var(--canvas-soft)", border: "1px solid var(--hairline)" }}>
+        <div className="space-y-1">
+          <div className="flex items-center gap-2">
+            <span className="t-label px-2 py-0.5 rounded-full font-mono text-[10px]" style={{ backgroundColor: "rgba(8, 50, 96, 0.1)", color: "var(--primary)" }}>
+              ENGINEERING DATASHEET
+            </span>
+            <span className="t-label font-mono text-[10.5px]" style={{ color: "var(--muted)" }}>
+              ROUTE: {wo.routeCode || "K2"} · PLANT {wo.plant || "KURKUMBH"}
+            </span>
+          </div>
+          <div className="t-title-md font-bold" style={{ color: "var(--ink)" }}>
+            {wo.itemName} ({wo.size})
+          </div>
+          <div className="t-body-sm" style={{ color: "var(--body)" }}>
+            Customer: <strong style={{ color: "var(--ink)" }}>{wo.customer}</strong> {wo.customerPo ? `· PO: ${wo.customerPo}` : ""} · SO Ref: <strong style={{ color: "var(--ink)" }}>{wo.soNumber || "SO-2026-HTU"}</strong>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2 shrink-0">
+          <div className="px-3 py-2 rounded-lg text-right" style={{ backgroundColor: "var(--surface-card)", border: "1px solid var(--hairline-soft)" }}>
+            <div className="t-label text-[10px]" style={{ color: "var(--muted)" }}>FINISH SPEC</div>
+            <div className="t-body-sm font-semibold truncate max-w-[140px]" style={{ color: "var(--primary)" }}>
+              {wo.finishType || "HDG 70 MIC"}
+            </div>
+          </div>
+          <div className="px-3 py-2 rounded-lg text-right" style={{ backgroundColor: "var(--surface-card)", border: "1px solid var(--hairline-soft)" }}>
+            <div className="t-label text-[10px]" style={{ color: "var(--muted)" }}>BATCH RELEASE</div>
+            <div className="t-body-sm font-semibold font-mono" style={{ color: passedUnits === wo.plannedQty ? "var(--semantic-success)" : "var(--ink)" }}>
+              {passedUnits} / {wo.plannedQty} <span className="text-[10px] font-normal text-muted">UNITS</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* 5 Engineering Pillars Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+        {/* 1. Geometry & Dimensions */}
+        <div className="rounded-xl p-3.5 space-y-2.5" style={{ backgroundColor: "var(--surface-card)", border: "1px solid var(--hairline)" }}>
+          <div className="flex items-center gap-2 pb-2 border-b" style={{ borderColor: "var(--hairline-soft)" }}>
+            <Ruler size={16} style={{ color: "var(--primary)" }} />
+            <span className="t-body-sm font-bold" style={{ color: "var(--ink)" }}>1. Geometry & Dimensional Envelope</span>
+          </div>
+          <div className="grid grid-cols-2 gap-2 text-xs">
+            <div className="p-2 rounded" style={{ backgroundColor: "var(--canvas-soft)" }}>
+              <div className="text-[10px] text-muted uppercase">Center-to-Center (CC)</div>
+              <div className="font-semibold text-ink font-mono">{ccDistance} (-1, 0, +1, +2 mm)</div>
+            </div>
+            <div className="p-2 rounded" style={{ backgroundColor: "var(--canvas-soft)" }}>
+              <div className="text-[10px] text-muted uppercase">Fin Width & Depth</div>
+              <div className="font-semibold text-ink font-mono">{finWidth} · Depth 4-5 mm</div>
+            </div>
+            <div className="p-2 rounded" style={{ backgroundColor: "var(--canvas-soft)" }}>
+              <div className="text-[10px] text-muted uppercase">Elements / Fin Count</div>
+              <div className="font-semibold text-ink font-mono">{finCount} (Pitch 45 ±1.0 mm)</div>
+            </div>
+            <div className="p-2 rounded" style={{ backgroundColor: "var(--canvas-soft)" }}>
+              <div className="text-[10px] text-muted uppercase">Diagonal Difference</div>
+              <div className="font-semibold text-ink font-mono">Max ≤ 3.0 mm (Both diagonals)</div>
+            </div>
+          </div>
+          <div className="text-[11px] text-muted flex items-center justify-between pt-1">
+            <span>Flange Co-planarity (Pata): ≤ 0.4 mm</span>
+            <span>Line Dori Hole Alignment: ≤ 0.5 mm</span>
+          </div>
+        </div>
+
+        {/* 2. Raw Material & Metallurgy */}
+        <div className="rounded-xl p-3.5 space-y-2.5" style={{ backgroundColor: "var(--surface-card)", border: "1px solid var(--hairline)" }}>
+          <div className="flex items-center gap-2 pb-2 border-b" style={{ borderColor: "var(--hairline-soft)" }}>
+            <Layers size={16} style={{ color: "var(--primary)" }} />
+            <span className="t-body-sm font-bold" style={{ color: "var(--ink)" }}>2. Raw Metallurgy & Steel Grade</span>
+          </div>
+          <div className="grid grid-cols-2 gap-2 text-xs">
+            <div className="p-2 rounded" style={{ backgroundColor: "var(--canvas-soft)" }}>
+              <div className="text-[10px] text-muted uppercase">Fin Sheet Steel Grade</div>
+              <div className="font-semibold text-ink font-mono">CRCA IS 513 Gr. D/DD (Deep Draw)</div>
+            </div>
+            <div className="p-2 rounded" style={{ backgroundColor: "var(--canvas-soft)" }}>
+              <div className="text-[10px] text-muted uppercase">Sheet Thickness & Tolerance</div>
+              <div className="font-semibold text-ink font-mono">{sheetThick}</div>
+            </div>
+            <div className="p-2 rounded" style={{ backgroundColor: "var(--canvas-soft)" }}>
+              <div className="text-[10px] text-muted uppercase">Approved Coil Mills</div>
+              <div className="font-semibold text-ink font-mono">Tata Steel / JSW / POSCO</div>
+            </div>
+            <div className="p-2 rounded" style={{ backgroundColor: "var(--canvas-soft)" }}>
+              <div className="text-[10px] text-muted uppercase">Header Pipe Spec</div>
+              <div className="font-semibold text-ink font-mono">88.9 OD × 3.2 mm WT (IS 1239 / A53)</div>
+            </div>
+          </div>
+          <div className="text-[11px] text-muted flex items-center justify-between pt-1">
+            <span>Welding Wire: AWS A5.18 ER70S-6 (Ø1.2 mm)</span>
+            <span>Magnet Test: Non-ferritic verified</span>
+          </div>
+        </div>
+
+        {/* 3. Surface Treatment & Corrosion Protection */}
+        <div className="rounded-xl p-3.5 space-y-2.5" style={{ backgroundColor: "var(--surface-card)", border: "1px solid var(--hairline)" }}>
+          <div className="flex items-center gap-2 pb-2 border-b" style={{ borderColor: "var(--hairline-soft)" }}>
+            <Droplets size={16} style={{ color: "var(--primary)" }} />
+            <span className="t-body-sm font-bold" style={{ color: "var(--ink)" }}>3. Surface Treatment & Protection</span>
+          </div>
+          <div className="space-y-2 text-xs">
+            {isHdg ? (
+              <div className="p-2 rounded space-y-1" style={{ backgroundColor: "rgba(8, 50, 96, 0.05)", border: "1px solid rgba(8, 50, 96, 0.12)" }}>
+                <div className="flex items-center justify-between font-semibold text-ink">
+                  <span>Hot-Dip Galvanizing (IS 4759 / ASTM A123)</span>
+                  <span className="t-label px-2 py-0.5 rounded text-[10px] bg-primary/10 text-primary">HDG SPEC</span>
+                </div>
+                <div className="text-[11px] text-muted">
+                  Minimum Zinc Coating Mass: <strong>610 g/m²</strong> · Average DFT: <strong>85–100 µm</strong> · Visual: Zero dross, blisters, acid run, or bare spots.
+                </div>
+              </div>
+            ) : (
+              <div className="p-2 rounded space-y-1" style={{ backgroundColor: "rgba(8, 50, 96, 0.05)", border: "1px solid rgba(8, 50, 96, 0.12)" }}>
+                <div className="flex items-center justify-between font-semibold text-ink">
+                  <span>3-Coat Polyurethane Paint System (ISO 12944 C4-High)</span>
+                  <span className="t-label px-2 py-0.5 rounded text-[10px] bg-primary/10 text-primary">RAL 7035</span>
+                </div>
+                <div className="text-[11px] text-muted">
+                  Primer: Zinc Rich Epoxy (40-50µm) · Intermediate: MIO Epoxy (50-70µm) · Topcoat: Aliphatic PU (40-50µm) · <strong>Total DFT: 140–180 µm</strong>.
+                </div>
+              </div>
+            )}
+            <div className="p-2 rounded" style={{ backgroundColor: "var(--canvas-soft)" }}>
+              <div className="text-[10px] text-muted uppercase">Internal Cleanliness & Varnish Flush</div>
+              <div className="text-[11px] text-ink font-medium">
+                Internal RD124 anti-rust solvent flush, zero acid/moisture residue, swab test certified. Nitrogen seal at <strong>0.20 kg/cm² hold</strong>.
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* 4. Flanges, Fittings & Hardware Matrix */}
+        <div className="rounded-xl p-3.5 space-y-2.5" style={{ backgroundColor: "var(--surface-card)", border: "1px solid var(--hairline)" }}>
+          <div className="flex items-center gap-2 pb-2 border-b" style={{ borderColor: "var(--hairline-soft)" }}>
+            <Wrench size={16} style={{ color: "var(--primary)" }} />
+            <span className="t-body-sm font-bold" style={{ color: "var(--ink)" }}>4. Flanges, Fittings & Torque Ledger</span>
+          </div>
+          <div className="grid grid-cols-2 gap-2 text-xs">
+            <div className="p-2 rounded" style={{ backgroundColor: "var(--canvas-soft)" }}>
+              <div className="text-[10px] text-muted uppercase">Flange PCD & Holes</div>
+              <div className="font-semibold text-ink font-mono">160 mm PCD · 4 × Ø18 mm</div>
+            </div>
+            <div className="p-2 rounded" style={{ backgroundColor: "var(--canvas-soft)" }}>
+              <div className="text-[10px] text-muted uppercase">Drain & Air Vent Plugs</div>
+              <div className="font-semibold text-ink font-mono">1/2" BSP Forged · PTFE Sealed</div>
+            </div>
+            <div className="p-2 rounded" style={{ backgroundColor: "var(--canvas-soft)" }}>
+              <div className="text-[10px] text-muted uppercase">Fastener Torque Spec</div>
+              <div className="font-semibold text-ink font-mono">55 – 75 N·m (Calibrated)</div>
+            </div>
+            <div className="p-2 rounded" style={{ backgroundColor: "var(--canvas-soft)" }}>
+              <div className="text-[10px] text-muted uppercase">Bracing & Accessories</div>
+              <div className="font-semibold text-ink font-mono">40×3 mm Flat · M10 Earth Boss</div>
+            </div>
+          </div>
+          <div className="text-[11px] text-muted flex items-center justify-between pt-1">
+            <span>Lifting Lugs: 10 mm MS Plate (SWL Certified)</span>
+            <span>Leak Test: 2.0 kg/cm² Air under Water (15 min)</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Production Batch Serialization & Genealogy Status */}
+      <div className="rounded-xl p-3.5 space-y-2" style={{ backgroundColor: "var(--canvas-soft)", border: "1px solid var(--hairline)" }}>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Boxes size={15} style={{ color: "var(--primary)" }} />
+            <span className="t-body-sm font-semibold" style={{ color: "var(--ink)" }}>Batch Unit Serialization Register</span>
+          </div>
+          <div className="flex items-center gap-2 text-xs">
+            <span className="text-emerald-700 font-medium">{passedUnits} Released</span>
+            <span>·</span>
+            <span className="text-amber-700 font-medium">{inProgressUnits} Active</span>
+            {defectiveUnits > 0 && (
+              <>
+                <span>·</span>
+                <span className="text-rose-700 font-semibold">{defectiveUnits} Under Containment</span>
+              </>
+            )}
+          </div>
+        </div>
+        <div className="flex flex-wrap gap-1.5 pt-1">
+          {units.map((u: any, idx: number) => {
+            const isPassed = u.status === "QC Released";
+            const isFailed = u.status === "Failed / Contained" || u.status === "Under Rework";
+            return (
+              <span
+                key={u.htuNo || idx}
+                className="t-code px-2 py-0.5 rounded text-[10.5px] font-mono border"
+                style={{
+                  backgroundColor: isPassed ? "rgba(74, 124, 94, 0.08)" : isFailed ? "rgba(160, 69, 69, 0.08)" : "var(--surface-card)",
+                  borderColor: isPassed ? "rgba(74, 124, 94, 0.3)" : isFailed ? "var(--semantic-error)" : "var(--hairline-soft)",
+                  color: isPassed ? "#4a7c5e" : isFailed ? "var(--semantic-error)" : "var(--ink)",
+                }}
+                title={`${u.htuNo}: ${u.status} · Completed ${u.completedStagesCount}/17 Stages`}
+              >
+                {u.htuNo}
+              </span>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function WorkOrderDetail({ wo, plant, onClose }: { wo: any; plant: string; onClose?: () => void }) {
   const [inspections, setInspections] = useState<any[]>([]);
   const [ncrs, setNcrs] = useState<any[]>([]);
@@ -2132,8 +2359,9 @@ function WorkOrderDetail({ wo, plant, onClose }: { wo: any; plant: string; onClo
       </SheetHeader>
 
       <div className="p-6">
-        <Tabs defaultValue="units">
-          <TabsList className="grid w-full grid-cols-6" style={{ backgroundColor: "var(--canvas-soft)" }}>
+        <Tabs defaultValue="profile">
+          <TabsList className="grid w-full grid-cols-7" style={{ backgroundColor: "var(--canvas-soft)" }}>
+            <TabsTrigger value="profile" className="t-body-sm font-medium">WO Profile</TabsTrigger>
             <TabsTrigger value="units" className="t-body-sm font-medium">Units ({units.length})</TabsTrigger>
             <TabsTrigger value="report" className="t-body-sm font-medium">Batch Report</TabsTrigger>
             <TabsTrigger value="overview" className="t-body-sm">Overview</TabsTrigger>
@@ -2141,6 +2369,11 @@ function WorkOrderDetail({ wo, plant, onClose }: { wo: any; plant: string; onClo
             <TabsTrigger value="ncrs" className="t-body-sm">Defects ({ncrs.length})</TabsTrigger>
             <TabsTrigger value="gates" className="t-body-sm">Gates</TabsTrigger>
           </TabsList>
+
+          {/* === WO Profile Tab: Engineering Datasheet & Geometry === */}
+          <TabsContent value="profile" className="mt-5">
+            <WorkOrderProfileView wo={wo} units={units} inspections={inspections} />
+          </TabsContent>
 
           {/* === Units Tab: Unit-by-Unit Tracking Matrix === */}
           <TabsContent value="units" className="mt-5 space-y-4">
@@ -2893,15 +3126,15 @@ function InspectionForm({ stages, workOrders, user, prefillStageCode, onSubmitte
 
     // 3. Determine Approved By (Tier 1 Releasing Approver)
     let selectedApprover = approvedBy;
-    if (["QualityManager", "PlantManager", "Director", "DGM", "Admin"].includes(user.role)) {
+    if (["QualityManager", "PlantManager", "Director", "DGM"].includes(user.role)) {
       selectedApprover = user.name;
     } else {
       const checkerUser = availableUsers.find((u: any) => u.name === selectedChecker);
       const checkerMgr = checkerUser?.managerId ? availableUsers.find((u: any) => u.id === checkerUser.managerId) : null;
-      if (checkerMgr && ["QualityManager", "PlantManager", "Director", "DGM", "Admin"].includes(checkerMgr.role)) {
+      if (checkerMgr && ["QualityManager", "PlantManager", "Director", "DGM"].includes(checkerMgr.role)) {
         selectedApprover = checkerMgr.name;
       } else {
-        const qm = availableUsers.find((u: any) => u.role === "QualityManager") || availableUsers.find((u: any) => u.role === "PlantManager") || availableUsers.find((u: any) => u.role === "DGM");
+        const qm = availableUsers.find((u: any) => u.role === "Director") || availableUsers.find((u: any) => u.role === "QualityManager") || availableUsers.find((u: any) => u.role === "PlantManager") || availableUsers.find((u: any) => u.role === "DGM");
         if (qm) selectedApprover = qm.name;
       }
     }
@@ -3404,7 +3637,9 @@ function InspectionForm({ stages, workOrders, user, prefillStageCode, onSubmitte
                   <div>
                     <Label className="t-label flex items-center justify-between" style={{ color: "var(--muted)" }}>
                       <span>2. Documented By (Digital Form Author)</span>
-                      <span className="text-[9px] px-1.5 py-0.2 rounded font-mono" style={{ backgroundColor: "rgba(74, 124, 94, 0.12)", color: "#4a7c5e" }}>ACTIVE SESSION</span>
+                      <span className="text-[9px] px-1.5 py-0.2 rounded font-mono" style={{ backgroundColor: user.role === "Admin" ? "rgba(8, 50, 96, 0.12)" : "rgba(74, 124, 94, 0.12)", color: user.role === "Admin" ? "var(--primary)" : "#4a7c5e" }}>
+                        {user.role === "Admin" ? "IT DESK GOVERNANCE" : "ACTIVE SESSION"}
+                      </span>
                     </Label>
                     <div
                       className="w-full mt-1 h-9 px-3 rounded-lg t-body-sm flex items-center justify-between"
@@ -3416,12 +3651,14 @@ function InspectionForm({ stages, workOrders, user, prefillStageCode, onSubmitte
                         color: "var(--ink)",
                       }}
                     >
-                      <span className="font-medium">{user.name}</span>
+                      <span className="font-medium">{user.role === "Admin" ? `${user.name} (IT Desk Entry)` : user.name}</span>
                       <span className="t-label text-[10px] px-1.5 py-0.5 rounded font-mono" style={{ backgroundColor: "var(--canvas-soft)", color: "var(--muted)" }}>
-                        {user.role} · @{user.username || user.name.toLowerCase().replace(/\s+/g, '.')}
+                        {user.role === "Admin" ? "IT Governance Staff" : `${user.role} · @${user.username || user.name.toLowerCase().replace(/\s+/g, '.')}`}
                       </span>
                     </div>
-                    <div className="t-label text-[10px] mt-0.5" style={{ color: "var(--muted-soft)" }}>Authenticated digital author logged into this session.</div>
+                    <div className="t-label text-[10px] mt-0.5" style={{ color: "var(--muted-soft)" }}>
+                      {user.role === "Admin" ? "IT Desk Entry: Recording measurements on behalf of shopfloor crew. Sign-offs reserved for QC & Plant leadership." : "Authenticated digital author logged into this session."}
+                    </div>
                   </div>
 
                   {/* 3. Quality Checker */}
@@ -3436,7 +3673,7 @@ function InspectionForm({ stages, workOrders, user, prefillStageCode, onSubmitte
                       </SelectTrigger>
                       <SelectContent>
                         {availableUsers
-                          .filter((u: any) => ["QCInspector", "QualityManager", "AssistantManager", "ProcessEngineer", "Admin"].includes(u.role))
+                          .filter((u: any) => ["QCInspector", "QualityManager", "AssistantManager", "ProcessEngineer", "ProductionSupervisor"].includes(u.role))
                           .map((u: any) => (
                             <SelectItem key={u.username || u.name} value={u.name}>
                               {u.name} · {u.role}
@@ -3459,7 +3696,7 @@ function InspectionForm({ stages, workOrders, user, prefillStageCode, onSubmitte
                       </SelectTrigger>
                       <SelectContent>
                         {availableUsers
-                          .filter((u: any) => ["QualityManager", "PlantManager", "Admin", "ProductionSupervisor"].includes(u.role))
+                          .filter((u: any) => ["Director", "QualityManager", "PlantManager", "DGM", "AssistantManager"].includes(u.role))
                           .map((u: any) => (
                             <SelectItem key={u.username || u.name} value={u.name}>
                               {u.name} · {u.role}
@@ -4197,8 +4434,8 @@ function InspectionForm({ stages, workOrders, user, prefillStageCode, onSubmitte
                   data-tooltip-pos="top"
                 >
                   <div className="t-label text-[9.5px]" style={{ color: "var(--muted)" }}>2. DOCUMENTED BY</div>
-                  <div className="t-body-sm font-medium truncate" style={{ color: "var(--ink)" }}>{user.name}</div>
-                  <div className="t-label text-[9px]" style={{ color: "var(--primary)" }}>{user.role} (Current)</div>
+                  <div className="t-body-sm font-medium truncate" style={{ color: "var(--ink)" }}>{user.role === "Admin" ? `${user.name} (IT Entry)` : user.name}</div>
+                  <div className="t-label text-[9px]" style={{ color: user.role === "Admin" ? "var(--muted)" : "var(--primary)" }}>{user.role === "Admin" ? "IT Desk Governance" : `${user.role} (Current)`}</div>
                 </div>
                 <div
                   className="p-2.5 rounded-lg cursor-help transition-colors hover:bg-[var(--surface-card)]"
@@ -6425,7 +6662,8 @@ function UserManagementModule({ plant, currentUser }: { plant: string; currentUs
       <div>
         <span className="t-label px-2 py-0.5 rounded-full inline-block" style={{ backgroundColor: "var(--surface-strong)", color: "var(--ink)" }}>{ROLE_LABELS[u.role] || u.role}</span>
         <div className="t-label text-[10px] mt-0.5 font-mono" style={{ color: "var(--primary)" }}>
-          {["Admin", "CEO", "Director", "DGM", "QualityManager", "PlantManager", "LineManager"].includes(u.role) ? "Tier 1: Releasing Approver" :
+          {u.role === "Admin" ? "IT Desk Systems (No Shopfloor Sign-off)" :
+           ["CEO", "Director", "DGM", "QualityManager", "PlantManager", "LineManager"].includes(u.role) ? "Tier 1: Releasing Approver" :
            ["QCInspector", "ProcessEngineer", "AssistantManager"].includes(u.role) ? "Tier 2: Quality Checker" :
            ["Operator", "ProductionSupervisor"].includes(u.role) ? "Tier 3: Line Operator" : "Governance Staff"}
         </div>
@@ -6466,10 +6704,11 @@ function UserManagementModule({ plant, currentUser }: { plant: string; currentUs
     { key: "status", header: "Status", sortable: true, sortValue: (u) => u.status, render: (u) => <StatusBadge status={u.status} size="xs" />, mobileLabel: "Status" },
   ];
 
-  // Group users into 3 hierarchy tiers
-  const tier1Users = useMemo(() => filtered.filter(u => ["CEO", "Director", "DGM", "PlantManager", "QualityManager", "Admin", "LineManager"].includes(u.role)), [filtered]);
+  // Group users into 3 hierarchy tiers + IT Governance
+  const tier1Users = useMemo(() => filtered.filter(u => ["CEO", "Director", "DGM", "PlantManager", "QualityManager", "LineManager"].includes(u.role)), [filtered]);
   const tier2Users = useMemo(() => filtered.filter(u => ["QCInspector", "ProcessEngineer", "AssistantManager"].includes(u.role)), [filtered]);
-  const tier3Users = useMemo(() => filtered.filter(u => !["CEO", "Director", "DGM", "PlantManager", "QualityManager", "Admin", "LineManager", "QCInspector", "ProcessEngineer", "AssistantManager"].includes(u.role)), [filtered]);
+  const tier3Users = useMemo(() => filtered.filter(u => ["Operator", "ProductionSupervisor"].includes(u.role)), [filtered]);
+  const itStaffUsers = useMemo(() => filtered.filter(u => u.role === "Admin"), [filtered]);
 
   return (
     <div className="reveal-up">
@@ -6516,40 +6755,91 @@ function UserManagementModule({ plant, currentUser }: { plant: string; currentUs
       <div className="p-4 md:p-8">
         {loading ? <LoadingBlock label="Loading user directory and org charts…" /> : (
           viewMode === "directory" ? (
-            <div className="rounded-xl overflow-hidden" style={{ border: "1px solid var(--hairline)", backgroundColor: "var(--surface-card)" }}>
-              <DataTable
-                columns={columns}
-                data={filtered}
-                onRowClick={(u) => canEdit(u) && setSelected(u)}
-                emptyMessage="No users found."
-                mobileCardRender={(u) => (
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <div className="t-body-sm font-medium" style={{ color: "var(--ink)" }}>{u.name}</div>
-                        <div className="t-label" style={{ color: "var(--muted)" }}>@{u.username}</div>
-                      </div>
-                      <StatusBadge status={u.status} size="xs" />
-                    </div>
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="t-label px-2 py-0.5 rounded-full" style={{ backgroundColor: "var(--surface-strong)", color: "var(--ink)" }}>{u.role}</span>
-                      {u.department && <span className="t-label" style={{ color: "var(--muted)" }}>{u.department}</span>}
-                    </div>
-                    {u.managerId && (
-                      <div className="t-label text-[11px]" style={{ color: "var(--muted)" }}>
-                        Reports to: <strong style={{ color: "var(--ink)" }}>{users.find((m: any) => m.id === u.managerId)?.name || "Supervisor"}</strong>
-                      </div>
-                    )}
-                    {(u.assignedStages || []).length > 0 && (
-                      <div className="flex flex-wrap gap-1">
-                        {u.assignedStages.map((s: string) => (
-                          <span key={s} className="t-code px-1.5 py-0.5 rounded" style={{ backgroundColor: "var(--canvas-soft)", color: "var(--primary)", fontSize: 10 }}>{s}</span>
-                        ))}
-                      </div>
-                    )}
+            <div className="space-y-4">
+              {/* Shopfloor 4-Tier Inspection Approval Flow Banner */}
+              <div className="rounded-xl p-4 space-y-2.5" style={{ backgroundColor: "var(--canvas-soft)", border: "1px solid var(--hairline)" }}>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Workflow size={16} style={{ color: "var(--primary)" }} />
+                    <span className="t-body-sm font-bold" style={{ color: "var(--ink)" }}>
+                      Shopfloor 4-Tier Inspection Approval Flow & Org Chart Allocation
+                    </span>
                   </div>
-                )}
-              />
+                  <span className="t-label text-[10.5px] px-2 py-0.5 rounded-full font-mono" style={{ backgroundColor: "rgba(8, 50, 96, 0.1)", color: "var(--primary)" }}>
+                    ISO 9001:2015 CLAUSE 5.3
+                  </span>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-2.5 text-xs">
+                  <div className="p-3 rounded-lg space-y-1" style={{ backgroundColor: "var(--surface-card)", border: "1px solid var(--hairline-soft)" }}>
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-700">Tier 3 · Line Operator</span>
+                      <span className="w-5 h-5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] flex items-center justify-center font-bold">3</span>
+                    </div>
+                    <div className="font-semibold text-ink">Shopfloor Machinist</div>
+                    <div className="text-[11px] text-muted">Fabricates radiator unit, enters actual micrometer / gauge readings on digital checksheet.</div>
+                  </div>
+                  <div className="p-3 rounded-lg space-y-1" style={{ backgroundColor: "var(--surface-card)", border: "1px solid var(--hairline-soft)" }}>
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-sky-700">Tier 2 · QC Checker</span>
+                      <span className="w-5 h-5 rounded-full bg-sky-100 text-sky-800 text-[10px] flex items-center justify-center font-bold">2</span>
+                    </div>
+                    <div className="font-semibold text-ink">Quality Inspector</div>
+                    <div className="text-[11px] text-muted">Allocated supervisor (Reports To). Verifies first-off piece, gauges, weld pull test & tolerances.</div>
+                  </div>
+                  <div className="p-3 rounded-lg space-y-1" style={{ backgroundColor: "var(--surface-card)", border: "1px solid var(--hairline-soft)" }}>
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-indigo-700">Tier 1 · Gate Approver</span>
+                      <span className="w-5 h-5 rounded-full bg-indigo-100 text-indigo-800 text-[10px] flex items-center justify-center font-bold">1</span>
+                    </div>
+                    <div className="font-semibold text-ink">Director / Quality Head</div>
+                    <div className="text-[11px] text-muted">Releases stage pass, disposition authorization (Rework/Scrap), and Certificate of Conformance.</div>
+                  </div>
+                  <div className="p-3 rounded-lg space-y-1" style={{ backgroundColor: "rgba(8, 50, 96, 0.04)", border: "1px solid rgba(8, 50, 96, 0.15)" }}>
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-slate-700">IT Desk Governance</span>
+                      <span className="w-5 h-5 rounded-full bg-slate-200 text-slate-800 text-[10px] flex items-center justify-center font-bold">IT</span>
+                    </div>
+                    <div className="font-semibold text-ink">System Administrator</div>
+                    <div className="text-[11px] text-muted">Administers accounts, master QAP data & audit logs. <strong>Excluded from quality approvals</strong>.</div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="rounded-xl overflow-hidden" style={{ border: "1px solid var(--hairline)", backgroundColor: "var(--surface-card)" }}>
+                <DataTable
+                  columns={columns}
+                  data={filtered}
+                  onRowClick={(u) => canEdit(u) && setSelected(u)}
+                  emptyMessage="No users found."
+                  mobileCardRender={(u) => (
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <div className="t-body-sm font-medium" style={{ color: "var(--ink)" }}>{u.name}</div>
+                          <div className="t-label" style={{ color: "var(--muted)" }}>@{u.username}</div>
+                        </div>
+                        <StatusBadge status={u.status} size="xs" />
+                      </div>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="t-label px-2 py-0.5 rounded-full" style={{ backgroundColor: "var(--surface-strong)", color: "var(--ink)" }}>{u.role}</span>
+                        {u.department && <span className="t-label" style={{ color: "var(--muted)" }}>{u.department}</span>}
+                      </div>
+                      {u.managerId && (
+                        <div className="t-label text-[11px]" style={{ color: "var(--muted)" }}>
+                          Reports to: <strong style={{ color: "var(--ink)" }}>{users.find((m: any) => m.id === u.managerId)?.name || "Supervisor"}</strong>
+                        </div>
+                      )}
+                      {(u.assignedStages || []).length > 0 && (
+                        <div className="flex flex-wrap gap-1">
+                          {u.assignedStages.map((s: string) => (
+                            <span key={s} className="t-code px-1.5 py-0.5 rounded" style={{ backgroundColor: "var(--canvas-soft)", color: "var(--primary)", fontSize: 10 }}>{s}</span>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                />
+              </div>
             </div>
           ) : (
             /* Multi-tier Org Flowchart View */
@@ -8571,7 +8861,7 @@ function ProcessFlowModule({ plant, plantInfo, user, onNavigate, onInspect }: { 
                     <Button
                       size="sm"
                       variant="outline"
-                      onClick={() => onNavigate("workOrders")}
+                      onClick={() => onNavigate("workorders")}
                       className="t-body-sm h-8 px-2.5 rounded-lg flex items-center gap-1"
                       style={{ borderColor: "var(--hairline)" }}
                       title="View active shopfloor work orders"
