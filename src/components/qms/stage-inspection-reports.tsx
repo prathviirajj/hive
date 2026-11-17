@@ -4,7 +4,7 @@ import React, { useState, useMemo } from "react";
 import {
   FileText, Download, Printer, FileSpreadsheet, FileJson, CheckCircle2,
   AlertTriangle, ShieldCheck, ChevronRight, Sparkles, Layers,
-  ExternalLink, Search, Filter, Box, ArrowRight, Eye, Check,
+  ExternalLink, Search, Filter, Box, ArrowRight, Eye, Check, ClipboardCheck,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -1080,6 +1080,156 @@ export function StageWiseReportsModule({ plant = "Unit 2" }: { plant?: string })
             </div>
           );
         })}
+      </div>
+    </div>
+  );
+}
+
+// ============================================================
+// DASHBOARD INSPECTION REPORTS & STAGE DOSSIER WIDGET
+// ============================================================
+export function DashboardInspectionReportsWidget({
+  onNavigateToInspect,
+  onViewReport,
+  activeWo,
+}: {
+  onNavigateToInspect?: (stageCode: string) => void;
+  onViewReport?: (stageCode: string) => void;
+  activeWo?: { woNumber: string; customer: string; size: string };
+}) {
+  const [selectedStageCode, setSelectedStageCode] = useState("S01");
+  const selectedStage = STAGE_CATALOG.find(s => s.code === selectedStageCode) || STAGE_CATALOG[0];
+
+  return (
+    <div
+      className="rounded-xl p-5 border space-y-4"
+      style={{
+        backgroundColor: "var(--surface-card)",
+        borderColor: "var(--hairline)",
+      }}
+    >
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-[var(--hairline-soft)]">
+        <div className="flex items-center gap-2.5">
+          <div
+            className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0"
+            style={{ backgroundColor: "rgba(8, 50, 96, 0.1)", color: "var(--primary)" }}
+          >
+            <Download size={18} />
+          </div>
+          <div>
+            <div className="flex items-center gap-2 flex-wrap">
+              <h2 className="t-display-sm" style={{ color: "var(--ink)" }}>Inspection Reports & Stage Dossier Hub</h2>
+              <span className="text-[10px] font-mono px-2 py-0.5 rounded-full font-bold bg-primary/10 text-primary">
+                ISO 9001 / IATF 16949
+              </span>
+            </div>
+            <div className="t-body-sm text-muted mt-0.5">
+              Instant access to all 17 manufacturing stages, standardized quality certificates, and master dossiers.
+            </div>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2 shrink-0 flex-wrap">
+          <Button
+            size="sm"
+            onClick={() => downloadAllStagesCombinedDossier(activeWo)}
+            className="h-8 px-3 rounded-lg text-xs font-semibold flex items-center gap-1.5 shadow-xs"
+            style={{ backgroundColor: "var(--primary)", color: "var(--on-primary)" }}
+            title="Download the complete 17-stage manufacturing compliance dossier"
+          >
+            <Download size={13} /> Complete 17-Stage Dossier
+          </Button>
+        </div>
+      </div>
+
+      {/* Stage Selector Pills & Stage Details */}
+      <div className="space-y-3">
+        <div className="flex items-center justify-between text-xs text-muted">
+          <span className="font-semibold uppercase font-mono text-[10.5px]">Select Manufacturing Stage (S01 – S17):</span>
+          <span className="font-mono text-[11px] text-primary">{selectedStage.name} ({selectedStage.docRef})</span>
+        </div>
+
+        {/* Scrollable Stage Pills */}
+        <div className="flex gap-1.5 overflow-x-auto scroll-fine pb-1">
+          {STAGE_CATALOG.map((s) => {
+            const isSelected = s.code === selectedStageCode;
+            return (
+              <button
+                key={s.code}
+                type="button"
+                onClick={() => setSelectedStageCode(s.code)}
+                className={`px-2.5 py-1.5 rounded-lg text-xs font-mono font-semibold transition-all shrink-0 flex items-center gap-1.5 ${
+                  isSelected
+                    ? "bg-primary text-white shadow-xs"
+                    : "bg-[var(--canvas-soft)] text-muted hover:text-ink border border-[var(--hairline)]"
+                }`}
+              >
+                <span>{s.code}</span>
+                <span className="hidden sm:inline font-sans text-[11px] font-normal truncate max-w-[120px]">{s.name}</span>
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Active Stage Report Action Bar */}
+        <div className="p-3.5 rounded-xl bg-[var(--canvas-soft)] border border-[var(--hairline-soft)] flex flex-col md:flex-row md:items-center justify-between gap-3">
+          <div className="min-w-0">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-xs font-bold font-mono px-2 py-0.5 rounded bg-primary/10 text-primary">
+                {selectedStage.code}
+              </span>
+              <span className="text-sm font-bold text-ink">{selectedStage.name}</span>
+              <span className="text-xs text-muted font-mono">({selectedStage.docRef})</span>
+              <span className="text-[10px] px-2 py-0.5 rounded bg-[var(--surface-card)] text-muted border border-[var(--hairline)]">
+                {selectedStage.params.length} Parameters
+              </span>
+            </div>
+            <div className="text-xs text-muted mt-1 truncate">
+              {selectedStage.description}
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 shrink-0 flex-wrap">
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => printStageReport(selectedStage, activeWo)}
+              className="h-8 px-2.5 text-xs rounded-lg flex items-center gap-1.5 border-[var(--hairline)] bg-[var(--surface-card)] hover:bg-[var(--canvas-soft)]"
+              title="Print or save PDF stage certificate"
+            >
+              <Printer size={13} className="text-primary" /> Print / PDF
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => downloadStageCsv(selectedStage, activeWo)}
+              className="h-8 px-2.5 text-xs rounded-lg flex items-center gap-1.5 border-[var(--hairline)] bg-[var(--surface-card)] hover:bg-[var(--canvas-soft)]"
+              title="Download stage measurements as CSV for Excel/SPC"
+            >
+              <FileSpreadsheet size={13} className="text-emerald-600" /> CSV
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => downloadStageJson(selectedStage, activeWo)}
+              className="h-8 px-2.5 text-xs rounded-lg flex items-center gap-1.5 border-[var(--hairline)] bg-[var(--surface-card)] hover:bg-[var(--canvas-soft)]"
+              title="Download cryptographic JSON audit payload"
+            >
+              <FileJson size={13} className="text-amber-600" /> JSON
+            </Button>
+            {onNavigateToInspect && (
+              <Button
+                size="sm"
+                onClick={() => onNavigateToInspect(selectedStage.code)}
+                className="h-8 px-3 text-xs rounded-lg flex items-center gap-1.5 font-semibold text-white shadow-xs"
+                style={{ backgroundColor: "var(--primary)" }}
+                title="Launch digital inspection form pre-filled for this stage"
+              >
+                <ClipboardCheck size={13} /> Inspect {selectedStage.code}
+              </Button>
+            )}
+          </div>
+        </div>
       </div>
     </div>
   );

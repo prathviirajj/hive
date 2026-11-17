@@ -21,8 +21,136 @@ import { useToast } from "@/hooks/use-toast";
 import type { User } from "@/components/qms/login";
 import { cn } from "@/lib/utils";
 
-// Sample preloaded customer engineering drawings
+// Customer approved engineering drawings from official customer POs & specifications
 const INITIAL_CUSTOMER_DRAWINGS: Record<string, any[]> = {
+  "SPTC": [
+    {
+      id: "dwg-sptc-01",
+      fileName: "HT-SPTC-26-04-8181-6853-SHT01.pdf",
+      customerDoc: "8181065",
+      poNumber: "PO6853 / PO6264",
+      hiTechDrg: "HT/SPTC/26/04/8181-6853 Rev 0 (Sheet 1 of 2)",
+      fileType: "Customer Approved GA Drawing (Sheet 1/2)",
+      fileFormat: "pdf",
+      size: "3.8 MB",
+      uploadedBy: "Yogesh Jadhav (Plant Director)",
+      uploadedAt: "2026-11-15T10:30:00Z",
+      status: "Approved",
+      approvedBy: "KYD Sir (CEO)",
+      notes: "Official SPTC Approved GA Drawing. 2900/1900 CC x 520 W x 26/3 Fin, CRCA 1.2mm IS 513:2016 CR2 Gr D, 80 NB 4.5mm ERW-FC pipes, DIN 42558-M6 air release, DIN 42558-M12A drain, AkzoNobel 5-layer paint system (Total DFT 286 µm nominal).",
+      deviations: [
+        "Item 2 & 3 Top and bottom header pipe provided 4.5mm thick (regular practice)",
+        "Item 6 Flange bore ID provided Ø83mm as per regular practice with SPTC",
+        "Item 7 Bracing rod position & orientation provided as per Hi-Tech standard",
+        "Item 8 Lifting lug provided as per Hi-Tech standard at fin center",
+        "Item 10 Gusset modified to suit",
+        "TP distance 35mm hence total length is 1495mm"
+      ],
+      pages: 2,
+    },
+    {
+      id: "dwg-sptc-02",
+      fileName: "HT-SPTC-26-04-8181-6853-SHT02.pdf",
+      customerDoc: "8181065",
+      poNumber: "PO6853",
+      hiTechDrg: "HT/SPTC/26/04/8181-6853 Rev 0 (Sheet 2 of 2)",
+      fileType: "Customer Approved GA Blueprint Details (Sheet 2/2)",
+      fileFormat: "pdf",
+      size: "4.1 MB",
+      uploadedBy: "Rohit Giri (Quality Manager)",
+      uploadedAt: "2026-11-15T11:00:00Z",
+      status: "Approved",
+      approvedBy: "Yogesh Jadhav (Plant Director)",
+      notes: "Sheet 2: Flange 150x150mm with 4x Ø22mm holes on PCD Ø160, Flange bore Ø83mm, Sealing surface painting RD-124 40-70 µm on Ø122, Bracing Lug 6mm (SS-316), Lifting Lug 10mm (Ø30 hole), Gusset 10mm, Earthing Lug 6mm (SS-316 unpainted).",
+      pages: 2,
+    },
+    {
+      id: "dwg-sptc-03",
+      fileName: "HTR-SPTC-2900-1900-520-26FIN.sldasm",
+      customerDoc: "8181065",
+      hiTechDrg: "HT/SPTC/26/04/8181-6853",
+      fileType: "SolidWorks 3D Assembly",
+      fileFormat: "sldasm",
+      size: "26.4 MB",
+      uploadedBy: "Amit Shah (Process Engineer)",
+      uploadedAt: "2026-11-14T09:15:00Z",
+      status: "Approved",
+      approvedBy: "Yogesh Jadhav (Plant Director)",
+      notes: "Parametric 3D SolidWorks assembly for SPTC 2900/1900 CC x 520 W with 26/3 elements, 4.5mm header pipes, and DIN 42558 fittings.",
+      solidWorksMeta: {
+        version: "SolidWorks 2024 SP2.0",
+        elementsCount: 26,
+        envelope: "2900/1900 × 520 × 240 mm",
+        mass: "198.5 kg",
+        material: "CRCA IS 513:2016 CR2 Gr D / ERW-FC 4.5mm",
+        features: ["Header 80 NB 4.5mm WT", "Flange PCD Ø160 (4x Ø22)", "Flange Bore Ø83mm", "DIN 42558 M6/M12A", "AkzoNobel 5-Coat 286µm"]
+      }
+    }
+  ],
+  "DELTA_STAR": [
+    {
+      id: "dwg-delta-01",
+      fileName: "HT-DELTA-26-11-RAD-090-36-20.5G-SHT01.pdf",
+      customerDoc: "RAD-090-36-20.5G",
+      poNumber: "1185452, 53, 54",
+      hiTechDrg: "HT/DELTA/26/11/RAD-090-36-20.5G Rev R0 (Sheet 1/2)",
+      fileType: "Customer Approved GA Drawing (Sheet 1/2)",
+      fileFormat: "pdf",
+      size: "3.5 MB",
+      uploadedBy: "Yogesh Jadhav (Plant Director)",
+      uploadedAt: "2026-11-03T14:00:00Z",
+      status: "Approved",
+      approvedBy: "KYD Sir (CEO)",
+      notes: "Official Delta Star GA Drawing. 2286 CC (90.0 in) x 520 W (20.5 in) x 36 Fin, CRCA 1.0mm IS 513:2016 CR2 Gr D, 80 NB 4.5mm ERW-FC pipes, Flange 190x190mm (7.5x7.5 in) PCD Ø198, 3/4\" NPT Air & Drain with Brass Plugs, AkzoNobel paint system (Total DFT 215 µm nominal ANSI 70).",
+      deviations: [
+        "Item 2 & 3 Header pipe thickness provided 4.5mm",
+        "Item 4 & 5 Air & Drain provided as per Hi-Tech std 3/4\" NPT with Brass Plug",
+        "Item 6 Flange provided as per Hi-Tech std (190x190mm square, PCD 198)",
+        "Item 7 Bracing rod Dia 10mm provided as per Hi-Tech std (9 pairs)",
+        "Item 8 Lifting lug provided as per Hi-Tech std (2 Nos)",
+        "Paint DFT provided 215 nominal (ANSI 70)"
+      ],
+      pages: 2,
+    },
+    {
+      id: "dwg-delta-02",
+      fileName: "HT-DELTA-26-11-RAD-090-36-20.5G-SHT02.pdf",
+      customerDoc: "RAD-090-36-20.5G",
+      poNumber: "1185452, 53, 54",
+      hiTechDrg: "HT/DELTA/26/11/RAD-090-36-20.5G Rev R0 (Sheet 2/2)",
+      fileType: "Customer Approved GA Blueprint Details (Sheet 2/2)",
+      fileFormat: "pdf",
+      size: "3.9 MB",
+      uploadedBy: "Rohit Giri (Quality Manager)",
+      uploadedAt: "2026-11-03T14:30:00Z",
+      status: "Approved",
+      approvedBy: "Yogesh Jadhav (Plant Director)",
+      notes: "Sheet 2: Flange 190x190mm with 4x Ø22mm holes on PCD Ø198, Bore Ø80mm, Sealing surface painting RD-124 40-70 µm on Ø140, Outer sealing surface primer+final paint 100-200 µm, 3/4\" NPT Brass Plugs, 5/8\"-11 UNC SS-304 Bracing Hex (6 Nos).",
+      pages: 2,
+    },
+    {
+      id: "dwg-delta-03",
+      fileName: "HTR-DELTA-2286-520-36FIN.sldasm",
+      customerDoc: "RAD-090-36-20.5G",
+      hiTechDrg: "HT/DELTA/26/11/RAD-090-36-20.5G",
+      fileType: "SolidWorks 3D Assembly",
+      fileFormat: "sldasm",
+      size: "28.1 MB",
+      uploadedBy: "Amit Shah (Process Engineer)",
+      uploadedAt: "2026-11-04T10:00:00Z",
+      status: "Approved",
+      approvedBy: "Yogesh Jadhav (Plant Director)",
+      notes: "Parametric 3D SolidWorks assembly for Delta Star 2286 CC (90 in) x 520 W (20.5 in) with 36 elements, 4.5mm header pipes, and 3/4\" NPT fittings.",
+      solidWorksMeta: {
+        version: "SolidWorks 2024 SP2.0",
+        elementsCount: 36,
+        envelope: "2286 × 520 × 240 mm [90 × 20.5 in]",
+        mass: "212.0 kg",
+        material: "CRCA IS 513:2016 CR2 Gr D / ERW-FC 4.5mm",
+        features: ["Header 80 NB 4.5mm WT", "Flange PCD Ø198 (4x Ø22)", "3/4\" NPT Brass Plugs", "5/8\"-11 UNC SS-304 Hex", "AkzoNobel 215µm ANSI 70"]
+      }
+    }
+  ],
   "default": [
     {
       id: "dwg-01",
@@ -54,7 +182,7 @@ const INITIAL_CUSTOMER_DRAWINGS: Record<string, any[]> = {
       uploadedAt: "2026-11-14T14:15:00Z",
       status: "Approved",
       approvedBy: "Yogesh Jadhav (Plant Director)",
-      notes: "Elsewedy Electric customer special QAP. Requires tight Pata tolerance ≤0.3mm and PU paint DFT min 200 µm.",
+      notes: "Customer special QAP. Requires tight Pata tolerance ≤0.3mm and PU paint DFT min 200 µm.",
       pages: 14,
     },
     {
@@ -369,8 +497,29 @@ export function WorkOrderFullProfilePage({
   const [inspections, setInspections] = useState<any[]>([]);
   const [ncrs, setNcrs] = useState<any[]>([]);
   const [reworkJobs, setReworkJobs] = useState<any[]>([]);
-  const [drawings, setDrawings] = useState<any[]>(INITIAL_CUSTOMER_DRAWINGS["default"]);
-  const [activeDrawing, setActiveDrawing] = useState<any>(INITIAL_CUSTOMER_DRAWINGS["default"][0]);
+
+  // Auto-detect customer approved drawing set
+  const customerKey = useMemo(() => {
+    const cust = (wo.customer || "").toLowerCase();
+    const won = (wo.woNumber || "").toLowerCase();
+    const item = (wo.itemName || "").toLowerCase();
+    if (cust.includes("sptc") || cust.includes("saudi") || won.includes("3004") || won.includes("3005") || item.includes("sptc")) {
+      return "SPTC";
+    }
+    if (cust.includes("delta") || won.includes("3006") || item.includes("delta")) {
+      return "DELTA_STAR";
+    }
+    return "default";
+  }, [wo]);
+
+  const [drawings, setDrawings] = useState<any[]>(() => INITIAL_CUSTOMER_DRAWINGS[customerKey] || INITIAL_CUSTOMER_DRAWINGS["default"]);
+  const [activeDrawing, setActiveDrawing] = useState<any>(() => (INITIAL_CUSTOMER_DRAWINGS[customerKey] || INITIAL_CUSTOMER_DRAWINGS["default"])[0]);
+
+  useEffect(() => {
+    const list = INITIAL_CUSTOMER_DRAWINGS[customerKey] || INITIAL_CUSTOMER_DRAWINGS["default"];
+    setDrawings(list);
+    setActiveDrawing(list[0]);
+  }, [customerKey]);
   const [activeTab, setActiveTab] = useState("overview");
   const [selectedUnit, setSelectedUnit] = useState<TrackedUnit | null>(null);
   const [showOverrideModal, setShowOverrideModal] = useState(false);
@@ -665,121 +814,230 @@ export function WorkOrderFullProfilePage({
         {/* ============================================================ */}
         {activeTab === "overview" && (
         <div className="space-y-4">
+          {/* Customer Drawing Banner */}
+          {customerKey !== "default" && (
+            <div className="p-3.5 rounded-xl border flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 bg-blue-50/50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-900/50">
+              <div className="flex items-center gap-2">
+                <FileCheck2 size={18} className="text-blue-600 shrink-0" />
+                <div>
+                  <span className="text-xs font-bold text-ink">Customer Approved Engineering Design Active</span>
+                  <div className="text-[11px] text-muted">
+                    {customerKey === "SPTC"
+                      ? "SPTC Drg: HT/SPTC/26/04/8181-6853 Rev 0 · Customer Doc: 8181065 · PO6853 · 2900/1900 CC x 520 W x 26/3 Fin"
+                      : "Delta Star Drg: HT/DELTA/26/11/RAD-090-36-20.5G Rev R0 · Customer Doc: RAD-090-36-20.5G · PO 1185452,53,54 · 2286 CC (90 in) x 520 W (20.5 in) x 36 Fin"}
+                  </div>
+                </div>
+              </div>
+              <span className="text-[10px] px-2.5 py-1 rounded-md font-mono font-bold bg-blue-600 text-white shrink-0 self-start sm:self-center">
+                CUSTOMER SIGNED OFF
+              </span>
+            </div>
+          )}
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* 1. Dimensional Envelope */}
             <div className="p-4 rounded-xl border border-[var(--hairline)] bg-[var(--surface-card)] space-y-3">
-              <div className="flex items-center gap-2 pb-2 border-b border-[var(--hairline-soft)]">
-                <Ruler size={16} className="text-primary" />
-                <span className="t-body-sm font-bold text-ink">1. Radiator Geometry & Dimensional Envelope</span>
+              <div className="flex items-center justify-between pb-2 border-b border-[var(--hairline-soft)]">
+                <div className="flex items-center gap-2">
+                  <Ruler size={16} className="text-primary" />
+                  <span className="t-body-sm font-bold text-ink">1. Radiator Geometry & Dimensional Envelope</span>
+                </div>
+                <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-[var(--canvas-soft)] text-muted">
+                  {customerKey === "SPTC" ? "2900/1900 CC" : customerKey === "DELTA_STAR" ? "2286 CC (90 in)" : "Envelope"}
+                </span>
               </div>
               <div className="grid grid-cols-2 gap-2 text-xs">
                 <div className="p-2.5 rounded bg-[var(--canvas-soft)]">
                   <div className="text-[10px] text-muted uppercase">Center-to-Center (CC)</div>
-                  <div className="font-semibold text-ink font-mono text-sm">{wo.size?.split("X")[0] || "1700"} mm</div>
+                  <div className="font-semibold text-ink font-mono text-sm">
+                    {customerKey === "SPTC" ? "2900 / 1900 mm" : customerKey === "DELTA_STAR" ? "2286 mm [90.0 in]" : (wo.size?.split("X")[0] || "1700 mm")}
+                  </div>
                   <div className="text-[10px] text-muted">Tolerance: -1, 0, +1, +2 mm</div>
                 </div>
                 <div className="p-2.5 rounded bg-[var(--canvas-soft)]">
                   <div className="text-[10px] text-muted uppercase">Fin Width & Depth</div>
-                  <div className="font-semibold text-ink font-mono text-sm">{wo.size?.split("X")[1] || "520"} mm</div>
+                  <div className="font-semibold text-ink font-mono text-sm">
+                    {customerKey === "DELTA_STAR" ? "520 mm [20.5 in]" : "520 mm"}
+                  </div>
                   <div className="text-[10px] text-muted">Rolling Depth: 4.0–5.0 mm</div>
                 </div>
                 <div className="p-2.5 rounded bg-[var(--canvas-soft)]">
                   <div className="text-[10px] text-muted uppercase">Elements Count & Pitch</div>
-                  <div className="font-semibold text-ink font-mono text-sm">{wo.size?.split("X")[2]?.split("+")[0] || "28"} Elements</div>
-                  <div className="text-[10px] text-muted">Standard Pitch: 45 ±1.0 mm</div>
+                  <div className="font-semibold text-ink font-mono text-sm">
+                    {customerKey === "SPTC" ? "26/3 Elements" : customerKey === "DELTA_STAR" ? "36 Elements" : (wo.size?.split("X")[2]?.split("+")[0] || "28") + " Elements"}
+                  </div>
+                  <div className="text-[10px] text-muted">Pitch: 45 ±1.0 mm (comb gauge)</div>
                 </div>
                 <div className="p-2.5 rounded bg-[var(--canvas-soft)]">
-                  <div className="text-[10px] text-muted uppercase">Diagonal Difference</div>
-                  <div className="font-semibold text-ink font-mono text-sm">Max ≤ 3.0 mm</div>
-                  <div className="text-[10px] text-muted">Measured on both diagonals</div>
+                  <div className="text-[10px] text-muted uppercase">Total Length & TP</div>
+                  <div className="font-semibold text-ink font-mono text-sm">
+                    {customerKey === "SPTC" ? "1495 mm (TP 35mm)" : customerKey === "DELTA_STAR" ? "1696 mm [66.8 in]" : "Envelope Nominal"}
+                  </div>
+                  <div className="text-[10px] text-muted">Diagonal Diff: Max ≤ 3.0 mm</div>
                 </div>
               </div>
               <div className="text-[11px] text-muted flex items-center justify-between pt-1">
                 <span>Flange Co-planarity (Pata): ≤ 0.4 mm</span>
-                <span>Line Dori Hole Alignment: ≤ 0.5 mm</span>
+                <span>Line Dori Alignment: ≤ 0.5 mm</span>
               </div>
             </div>
 
             {/* 2. Metallurgy & Steel */}
             <div className="p-4 rounded-xl border border-[var(--hairline)] bg-[var(--surface-card)] space-y-3">
-              <div className="flex items-center gap-2 pb-2 border-b border-[var(--hairline-soft)]">
-                <Layers size={16} className="text-primary" />
-                <span className="t-body-sm font-bold text-ink">2. Raw Metallurgy & Steel Grade Specifications</span>
+              <div className="flex items-center justify-between pb-2 border-b border-[var(--hairline-soft)]">
+                <div className="flex items-center gap-2">
+                  <Layers size={16} className="text-primary" />
+                  <span className="t-body-sm font-bold text-ink">2. Raw Metallurgy & Steel Grade Specifications</span>
+                </div>
+                <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-[var(--canvas-soft)] text-muted">
+                  {customerKey === "SPTC" ? "CRCA 1.2 mm" : customerKey === "DELTA_STAR" ? "CRCA 1.0 mm" : "IS 513 Gr. D"}
+                </span>
               </div>
               <div className="grid grid-cols-2 gap-2 text-xs">
                 <div className="p-2.5 rounded bg-[var(--canvas-soft)]">
                   <div className="text-[10px] text-muted uppercase">Fin Sheet Material</div>
-                  <div className="font-semibold text-ink font-mono text-sm">CRCA IS 513 Gr. D/DD</div>
-                  <div className="text-[10px] text-muted">Deep Drawing Quality</div>
+                  <div className="font-semibold text-ink font-mono text-sm">CRCA IS 513:2016 CR2 Gr D</div>
+                  <div className="text-[10px] text-muted">EN 10130 Deep Drawing</div>
                 </div>
                 <div className="p-2.5 rounded bg-[var(--canvas-soft)]">
                   <div className="text-[10px] text-muted uppercase">Sheet Thickness</div>
-                  <div className="font-semibold text-ink font-mono text-sm">{wo.size?.includes("1.2") ? "1.20 mm" : "1.00 mm"}</div>
-                  <div className="text-[10px] text-muted">Tolerance ±0.03 mm</div>
-                </div>
-                <div className="p-2.5 rounded bg-[var(--canvas-soft)]">
-                  <div className="text-[10px] text-muted uppercase">Approved Coil Mills</div>
-                  <div className="font-semibold text-ink font-mono text-sm">Tata Steel / JSW / POSCO</div>
-                  <div className="text-[10px] text-muted">Primary Mill TC Verified</div>
+                  <div className="font-semibold text-ink font-mono text-sm">
+                    {customerKey === "SPTC" ? "1.20 mm ±0.03 mm" : customerKey === "DELTA_STAR" ? "1.00 mm ±0.03 mm" : (wo.size?.includes("1.2") ? "1.20 mm" : "1.00 mm")}
+                  </div>
+                  <div className="text-[10px] text-muted">Digital Micrometer check</div>
                 </div>
                 <div className="p-2.5 rounded bg-[var(--canvas-soft)]">
                   <div className="text-[10px] text-muted uppercase">Header Pipe Spec</div>
-                  <div className="font-semibold text-ink font-mono text-sm">88.9 OD × 3.2mm WT</div>
-                  <div className="text-[10px] text-muted">IS 1239 Heavy Class ERW</div>
+                  <div className="font-semibold text-ink font-mono text-sm">
+                    {customerKey === "SPTC" || customerKey === "DELTA_STAR" ? "80 NB · 4.5 mm Thick ERW-FC" : "80 NB · 3.6–4.5 mm WT"}
+                  </div>
+                  <div className="text-[10px] text-muted">IS 3074 / IS 1239 / EN10217</div>
+                </div>
+                <div className="p-2.5 rounded bg-[var(--canvas-soft)]">
+                  <div className="text-[10px] text-muted uppercase">Flange & Bracing Steel</div>
+                  <div className="font-semibold text-ink font-mono text-sm">IS 2062:2011 E250 BR</div>
+                  <div className="text-[10px] text-muted">EN 10025-2 S235 JR Weldable</div>
                 </div>
               </div>
               <div className="text-[11px] text-muted flex items-center justify-between pt-1">
-                <span>Welding Wire: AWS A5.18 ER70S-6 (Ø1.2 mm)</span>
-                <span>Magnet Check: Non-ferritic confirmed</span>
+                <span>Bracing Rod: IS 7887:1992 SAE 1018</span>
+                <span>Welding Wire: AWS A5.18 ER70S-6</span>
               </div>
             </div>
 
             {/* 3. Surface Finish & Protection */}
             <div className="p-4 rounded-xl border border-[var(--hairline)] bg-[var(--surface-card)] space-y-3">
-              <div className="flex items-center gap-2 pb-2 border-b border-[var(--hairline-soft)]">
-                <Droplets size={16} className="text-primary" />
-                <span className="t-body-sm font-bold text-ink">3. Surface Treatment & Corrosion Protection</span>
+              <div className="flex items-center justify-between pb-2 border-b border-[var(--hairline-soft)]">
+                <div className="flex items-center gap-2">
+                  <Droplets size={16} className="text-primary" />
+                  <span className="t-body-sm font-bold text-ink">3. Surface Treatment & Corrosion Protection</span>
+                </div>
+                <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-600 font-bold">
+                  {customerKey === "SPTC" ? "SSPC PA-2 (286 µm)" : customerKey === "DELTA_STAR" ? "SSPC PA2 (215 µm)" : "APPROVED FINISH"}
+                </span>
               </div>
-              <div className="p-3 rounded-lg bg-[var(--canvas-soft)] space-y-1.5 text-xs">
-                <div className="flex items-center justify-between font-semibold text-ink">
-                  <span>Specification: {wo.finishType || "HDG 70 MIC / PU Paint"}</span>
-                  <span className="text-[10px] px-2 py-0.5 rounded font-mono bg-primary/10 text-primary">APPROVED FINISH</span>
-                </div>
-                <div className="text-[11px] text-muted">
-                  External: Hot-Dip Galvanizing per IS 4759 (min 610 g/m²) or 3-coat Polyurethane paint system (DFT 140–180 µm per ISO 12944 C4-High).
-                </div>
-                <div className="text-[11px] text-muted pt-1 border-t border-[var(--hairline-soft)]">
-                  Internal: RD124 anti-rust solvent flush, zero acid/moisture residue, swab test certified. Dry Nitrogen seal at <strong>0.20 kg/cm² hold</strong>.
-                </div>
+              <div className="p-3 rounded-lg bg-[var(--canvas-soft)] space-y-2 text-xs">
+                {customerKey === "SPTC" ? (
+                  <>
+                    <div className="flex items-center justify-between font-semibold text-ink">
+                      <span>AkzoNobel 5-Coat Paint System (As Per SSPC PA-2)</span>
+                      <span className="text-xs font-mono font-bold text-primary">Total DFT 286 µm nominal</span>
+                    </div>
+                    <div className="grid grid-cols-2 gap-1.5 text-[11px] text-muted">
+                      <div>• HDG: <strong>86 µm</strong></div>
+                      <div>• Epoxy Primer (Intergard 269): <strong>40 µm</strong></div>
+                      <div>• Epoxy Primer (Intergard 251): <strong>40 µm</strong></div>
+                      <div>• Epoxy MIO (Intergard 400): <strong>80 µm</strong></div>
+                      <div>• Top Coat (PU-990): <strong>40 µm RAL-7038</strong></div>
+                      <div>• Internal: <strong>Ching RD-124 Olive Green (40-70 µm on Ø122)</strong></div>
+                    </div>
+                  </>
+                ) : customerKey === "DELTA_STAR" ? (
+                  <>
+                    <div className="flex items-center justify-between font-semibold text-ink">
+                      <span>AkzoNobel Paint System (As Per SSPC PA2)</span>
+                      <span className="text-xs font-mono font-bold text-primary">Total DFT 215 µm nominal</span>
+                    </div>
+                    <div className="grid grid-cols-2 gap-1.5 text-[11px] text-muted">
+                      <div>• Exterior HDG: <strong>55 µm</strong></div>
+                      <div>• Epoxy Primer (Intergard 251): <strong>50 µm</strong></div>
+                      <div>• Epoxy MIO (Intergard 475): <strong>60 µm</strong></div>
+                      <div>• Top Coat (PU-990): <strong>50 µm ANSI 70</strong></div>
+                      <div className="col-span-2">• Internal: <strong>Ching RD-124 Olive Green (40-70 µm on Ø140)</strong></div>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="flex items-center justify-between font-semibold text-ink">
+                      <span>Specification: {wo.finishType || "HDG 70 MIC / PU Paint"}</span>
+                      <span className="text-[10px] px-2 py-0.5 rounded font-mono bg-primary/10 text-primary">APPROVED FINISH</span>
+                    </div>
+                    <div className="text-[11px] text-muted">
+                      External: Hot-Dip Galvanizing per IS 4759 (min 610 g/m²) or 3-coat Polyurethane paint system (DFT 140–180 µm per ISO 12944 C4-High).
+                    </div>
+                    <div className="text-[11px] text-muted pt-1 border-t border-[var(--hairline-soft)]">
+                      Internal: RD124 anti-rust solvent flush, zero residue, swab test certified. Dry Nitrogen seal at <strong>0.20 kg/cm² hold</strong>.
+                    </div>
+                  </>
+                )}
               </div>
             </div>
 
             {/* 4. Flanges & Hardware */}
             <div className="p-4 rounded-xl border border-[var(--hairline)] bg-[var(--surface-card)] space-y-3">
-              <div className="flex items-center gap-2 pb-2 border-b border-[var(--hairline-soft)]">
-                <Wrench size={16} className="text-primary" />
-                <span className="t-body-sm font-bold text-ink">4. Flanges, Fittings & Hardware Torque Ledger</span>
+              <div className="flex items-center justify-between pb-2 border-b border-[var(--hairline-soft)]">
+                <div className="flex items-center gap-2">
+                  <Wrench size={16} className="text-primary" />
+                  <span className="t-body-sm font-bold text-ink">4. Flanges, Fittings & Hardware Torque Ledger</span>
+                </div>
+                <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-[var(--canvas-soft)] text-muted">
+                  {customerKey === "SPTC" ? "PCD Ø160" : customerKey === "DELTA_STAR" ? "PCD Ø198" : "PCD 160"}
+                </span>
               </div>
               <div className="grid grid-cols-2 gap-2 text-xs">
                 <div className="p-2.5 rounded bg-[var(--canvas-soft)]">
-                  <div className="text-[10px] text-muted uppercase">Header Flange PCD</div>
-                  <div className="font-semibold text-ink font-mono text-sm">160 mm PCD · 4 × Ø18 mm</div>
-                  <div className="text-[10px] text-muted">Serrated phonographic finish</div>
+                  <div className="text-[10px] text-muted uppercase">Header Flange Spec</div>
+                  <div className="font-semibold text-ink font-mono text-sm">
+                    {customerKey === "SPTC"
+                      ? "150x150 mm · PCD Ø160 (4x Ø22)"
+                      : customerKey === "DELTA_STAR"
+                      ? "190x190 mm [7.5 in] · PCD Ø198 (4x Ø22)"
+                      : "160 mm PCD · 4 × Ø18 mm"}
+                  </div>
+                  <div className="text-[10px] text-muted">
+                    {customerKey === "SPTC" ? "Bore ID Ø83mm (Cust Dev #2)" : customerKey === "DELTA_STAR" ? "Bore ID Ø80mm" : "Serrated phonographic finish"}
+                  </div>
                 </div>
                 <div className="p-2.5 rounded bg-[var(--canvas-soft)]">
-                  <div className="text-[10px] text-muted uppercase">Drain & Air Vent Plugs</div>
-                  <div className="font-semibold text-ink font-mono text-sm">1/2" BSP Forged Plugs</div>
-                  <div className="text-[10px] text-muted">Sealed with PTFE tape</div>
+                  <div className="text-[10px] text-muted uppercase">Air Release & Drain Plugs</div>
+                  <div className="font-semibold text-ink font-mono text-sm">
+                    {customerKey === "SPTC"
+                      ? "DIN 42558-M6 & M12A"
+                      : customerKey === "DELTA_STAR"
+                      ? "3/4\" NPT with Brass Plug"
+                      : "1/2\" BSP Forged Plugs"}
+                  </div>
+                  <div className="text-[10px] text-muted">
+                    {customerKey === "SPTC" ? "PTFE Inflon-210 washers" : customerKey === "DELTA_STAR" ? "Hi-Tech Standard 3/4\" NPT" : "Sealed with PTFE tape"}
+                  </div>
+                </div>
+                <div className="p-2.5 rounded bg-[var(--canvas-soft)]">
+                  <div className="text-[10px] text-muted uppercase">Bracing & Accessories</div>
+                  <div className="font-semibold text-ink font-mono text-sm">
+                    {customerKey === "SPTC"
+                      ? "SS-316 Bracing Boss M8 & Lugs"
+                      : customerKey === "DELTA_STAR"
+                      ? "5/8\"-11 UNC SS-304 Bracing Hex"
+                      : "40×3 mm Flat Braces"}
+                  </div>
+                  <div className="text-[10px] text-muted">
+                    {customerKey === "SPTC" ? "Earthing Lug SS-316 (Unpainted)" : customerKey === "DELTA_STAR" ? "Bracing Rod Dia 10mm (9 pairs)" : "Lifting lug tested 2.5x SWL"}
+                  </div>
                 </div>
                 <div className="p-2.5 rounded bg-[var(--canvas-soft)]">
                   <div className="text-[10px] text-muted uppercase">Plug Fastener Torque</div>
                   <div className="font-semibold text-ink font-mono text-sm">55 – 75 N·m</div>
                   <div className="text-[10px] text-muted">Torque wrench audit check</div>
-                </div>
-                <div className="p-2.5 rounded bg-[var(--canvas-soft)]">
-                  <div className="text-[10px] text-muted uppercase">Bracing & Accessories</div>
-                  <div className="font-semibold text-ink font-mono text-sm">40×3 mm Flat Braces</div>
-                  <div className="text-[10px] text-muted">Lifting lug tested 2.5x SWL</div>
                 </div>
               </div>
             </div>

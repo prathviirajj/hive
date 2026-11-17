@@ -73,6 +73,8 @@ import {
 import {
   StandardizedReportsCard,
   StageWiseReportsModule,
+  DashboardInspectionReportsWidget,
+  STAGE_CATALOG,
 } from "@/components/qms/stage-inspection-reports";
 import masterStageCharacteristics from "@/lib/master-stage-characteristics.json";
 
@@ -369,28 +371,37 @@ function AppShell({ user, onLogout }: { user: User; onLogout: () => void }) {
     setSearchQuery("");
   };
 
-  // Navigate to inspection module with a pre-selected stage code.
-  // Used by Process Flow INSPECT buttons so the form opens with the
-  // correct stage already chosen - fixes the "Inspect does nothing" bug
-  // where the user landed on the inspection list with no context.
-  const navigateToInspect = (stageCode: string | null) => {
-    if (!hasModule(user.role, "inspection")) return;
-    setInspectPrefillStage(stageCode);
-    setActive("inspection");
-    setNavOpen(false);
-    setSearchOpen(false);
-    setSearchQuery("");
-    // Scroll to top so the form is visible
-    if (typeof window !== "undefined") window.scrollTo({ top: 0, behavior: "smooth" });
+  // Global Process-Wise Inspection Form Drawer State
+  const [inspectDrawerOpen, setInspectDrawerOpen] = useState(false);
+  const [inspectDrawerStageCode, setInspectDrawerStageCode] = useState<string | null>(null);
+  const [inspectDrawerWoId, setInspectDrawerWoId] = useState<string | null>(null);
+  const [globalStages, setGlobalStages] = useState<any[]>([]);
+  const [globalWorkOrders, setGlobalWorkOrders] = useState<any[]>([]);
+
+  useEffect(() => {
+    fetch("/api/process-routes?code=K2").then(r => r.json()).then(d => setGlobalStages(d.route?.stages || []));
+    fetch(`/api/work-orders?plant=${plant}`).then(r => r.json()).then(d => setGlobalWorkOrders(d.workOrders || []));
+  }, [plant]);
+
+  // Navigate to or open the digital inspection drawer with pre-filled stage and active work order.
+  // Works everywhere: Process Flow, Dashboard, Work Orders, and Inspection list.
+  const navigateToInspect = (stageCode: string | null, targetWoId?: string | null) => {
+    if (!hasModule(user.role, "inspection")) {
+      toast({
+        title: "Access restricted",
+        description: "Your role does not have authorization to perform quality inspections.",
+        variant: "destructive"
+      });
+      return;
+    }
+    setInspectDrawerStageCode(stageCode);
+    setInspectDrawerWoId(targetWoId || null);
+    setInspectDrawerOpen(true);
   };
 
-  // Navigate to inspection module and auto-open the form drawer
+  // Open the digital inspection drawer for new inspection
   const handleStartInspection = () => {
-    setActive("inspection");
-    setInspectPrefillStage(null);
-    // The InspectionModule will auto-open the form because we set a flag
-    // We use a trick: set prefillStage to a sentinel value that triggers form open
-    setInspectPrefillStage("__OPEN_FORM__");
+    navigateToInspect(null);
   };
 
   // If active module not allowed for current user, fallback to dashboard
@@ -653,6 +664,34 @@ function AppShell({ user, onLogout }: { user: User; onLogout: () => void }) {
         <main className="flex-1 min-w-0 h-full overflow-y-auto scroll-fine" style={{ overflowX: "hidden" }}>
           <ModuleRouter active={active} plant={plant} plantInfo={currentPlant} user={user} onNavigate={navigateTo} prefillStage={inspectPrefillStage} onInspect={navigateToInspect} onStartInspection={handleStartInspection} />
         </main>
+
+        {/* Global Process-Wise Inspection Form Drawer */}
+        <Sheet open={inspectDrawerOpen} onOpenChange={setInspectDrawerOpen}>
+          <SheetContent
+            className="w-full md:w-[85vw] lg:w-[80vw] xl:w-[75vw] max-w-[1400px] p-0 overflow-y-auto"
+            style={{ backgroundColor: "var(--surface-card)" }}
+          >
+            {inspectDrawerOpen && (
+              <InspectionForm
+                stages={globalStages}
+                workOrders={globalWorkOrders}
+                user={user}
+                prefillStageCode={inspectDrawerStageCode}
+                prefillWoId={inspectDrawerWoId}
+                onSubmitted={() => {
+                  setInspectDrawerOpen(false);
+                  setInspectDrawerStageCode(null);
+                  setInspectDrawerWoId(null);
+                }}
+                onCancel={() => {
+                  setInspectDrawerOpen(false);
+                  setInspectDrawerStageCode(null);
+                  setInspectDrawerWoId(null);
+                }}
+              />
+            )}
+          </SheetContent>
+        </Sheet>
       </div>
     </div>
   );
@@ -808,7 +847,7 @@ function ModuleRouter({ active, plant, plantInfo, user, onNavigate, prefillStage
     return <AccessDeniedNotice module={active} user={user} onNavigate={onNavigate} />;
   }
   switch (active) {
-    case "dashboard": return <DashboardModule plant={plant} plantInfo={plantInfo} user={user} onNavigate={onNavigate} onStartInspection={onStartInspection} />;
+    case "dashboard": return <DashboardModule plant={plant} plantInfo={plantInfo} user={user} onNavigate={onNavigate} onStartInspection={onStartInspection} onInspect={onInspect} />;
     case "processflow": return <ProcessFlowModule plant={plant} plantInfo={plantInfo} user={user} onNavigate={onNavigate} onInspect={onInspect || (() => {})} />;
     case "workorders": return <WorkOrdersModule plant={plant} user={user} onNavigate={onNavigate} onInspect={onInspect} />;
     case "salesorders": return <SalesOrdersModule plant={plant} user={user} onNavigate={onNavigate} onInspect={onInspect} />;
@@ -853,21 +892,22 @@ function ModuleRouter({ active, plant, plantInfo, user, onNavigate, prefillStage
 // ============================================================
 // Dashboard - role-personalized
 // ============================================================
-function DashboardModule({ plant, plantInfo, user, onNavigate, onStartInspection }: { plant: string; plantInfo: any; user: User; onNavigate: (k: ModuleKey) => void; onStartInspection?: () => void }) {
+function DashboardModule({ plant, plantInfo, user, onNavigate, onStartInspection, onInspect }: { plant: string; plantInfo: any; user: User; onNavigate: (k: ModuleKey) => void; onStartInspection?: () => void; onInspect?: (stageCode: string | null) => void }) {
   const role = user.role as Role;
   if (role === "Operator") return <OperatorDashboard plant={plant} plantInfo={plantInfo} user={user} onNavigate={onNavigate} onStartInspection={onStartInspection} />;
-  if (role === "QCInspector") return <InspectorDashboard plant={plant} plantInfo={plantInfo} user={user} />;
+  if (role === "QCInspector") return <InspectorDashboard plant={plant} plantInfo={plantInfo} user={user} onInspect={onInspect} />;
   if (role === "ProductionSupervisor") return <SupervisorDashboard plant={plant} plantInfo={plantInfo} user={user} />;
   if (role === "AssistantManager") return <AssistantManagerDashboard plant={plant} plantInfo={plantInfo} user={user} />;
-  return <ControlTowerDashboard plant={plant} plantInfo={plantInfo} user={user} onNavigate={onNavigate} />;
+  return <ControlTowerDashboard plant={plant} plantInfo={plantInfo} user={user} onNavigate={onNavigate} onInspect={onInspect} />;
 }
 
 // ============================================================
 // Control Tower Dashboard (Admin / QualityManager)
 // ============================================================
-function ControlTowerDashboard({ plant, plantInfo, user, onNavigate }: { plant: string; plantInfo: any; user: User; onNavigate: (k: ModuleKey) => void }) {
+function ControlTowerDashboard({ plant, plantInfo, user, onNavigate, onInspect }: { plant: string; plantInfo: any; user: User; onNavigate: (k: ModuleKey) => void; onInspect?: (stageCode: string | null) => void }) {
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [selectedRecordForDetail, setSelectedRecordForDetail] = useState<any | null>(null);
 
   useEffect(() => {
     setLoading(true);
@@ -1089,21 +1129,29 @@ function ControlTowerDashboard({ plant, plantInfo, user, onNavigate }: { plant: 
             )}
           </div>
 
+          {/* Inspection Reports & Stage Dossier Hub */}
+          <div className="lg:col-span-3">
+            <DashboardInspectionReportsWidget
+              onNavigateToInspect={(code) => onInspect ? onInspect(code) : onNavigate("inspection")}
+              activeWo={data.recentInspections?.[0]?.workOrder}
+            />
+          </div>
+
           {/* Recent Inspections */}
           <div className="lg:col-span-2 rounded-xl overflow-hidden" style={{ border: "1px solid var(--hairline)", backgroundColor: "var(--surface-card)" }}>
             <div className="flex items-center justify-between p-5 pb-3">
               <div>
                 <h2 className="t-display-sm" style={{ color: "var(--ink)" }}>Recent Inspections</h2>
-                <div className="t-body-sm" style={{ color: "var(--muted)" }}>{data.recentInspections.length} latest records</div>
+                <div className="t-body-sm" style={{ color: "var(--muted)" }}>Click any row to open official certificate & report drawer ({data.recentInspections.length} latest)</div>
               </div>
               <ClipboardCheck size={16} style={{ color: "var(--muted)" }} />
             </div>
             <DataTable
               columns={[
-                { key: "record", header: "Record", render: (r: any) => <span className="t-code" style={{ color: "var(--ink)" }}>{r.recordNo}</span>, sortable: true, sortValue: (r: any) => r.recordNo },
+                { key: "record", header: "Record", render: (r: any) => <span className="t-code font-bold hover:underline" style={{ color: "var(--primary)" }}>{r.recordNo}</span>, sortable: true, sortValue: (r: any) => r.recordNo },
                 { key: "stage", header: "Stage", render: (r: any) => (
                   <div>
-                    <div className="t-body-sm" style={{ color: "var(--ink)" }}>{r.stage?.name}</div>
+                    <div className="t-body-sm font-semibold" style={{ color: "var(--ink)" }}>{r.stage?.name}</div>
                     <div className="t-label" style={{ color: "var(--muted)" }}>{r.stage?.documentRef}</div>
                   </div>
                 ), mobileLabel: "Stage" },
@@ -1118,6 +1166,7 @@ function ControlTowerDashboard({ plant, plantInfo, user, onNavigate }: { plant: 
                 { key: "when", header: "When", render: (r: any) => <span className="t-label">{fmtDateTime(r.inspectedAt)}</span>, hideOnMobile: true },
               ]}
               data={data.recentInspections}
+              onRowClick={setSelectedRecordForDetail}
             />
           </div>
 
@@ -1261,6 +1310,21 @@ function ControlTowerDashboard({ plant, plantInfo, user, onNavigate }: { plant: 
           </div>
         </div>
       </div>
+
+      {/* Inspection Detail Drawer from Dashboard */}
+      <Sheet open={!!selectedRecordForDetail} onOpenChange={(o) => !o && setSelectedRecordForDetail(null)}>
+        <SheetContent
+          className="w-full md:w-[85vw] lg:w-[80vw] xl:w-[75vw] max-w-[1400px] p-0 overflow-y-auto"
+          style={{ backgroundColor: "var(--surface-card)" }}
+        >
+          {selectedRecordForDetail && (
+            <InspectionDetail
+              record={selectedRecordForDetail}
+              onClose={() => setSelectedRecordForDetail(null)}
+            />
+          )}
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }
@@ -1481,9 +1545,10 @@ function SupervisorDashboard({ plant, plantInfo, user }: { plant: string; plantI
 // ============================================================
 // Inspector Dashboard - My Inspection Queue
 // ============================================================
-function InspectorDashboard({ plant, plantInfo, user }: { plant: string; plantInfo: any; user: User }) {
+function InspectorDashboard({ plant, plantInfo, user, onInspect }: { plant: string; plantInfo: any; user: User; onInspect?: (stageCode: string | null) => void }) {
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [selectedRecordForDetail, setSelectedRecordForDetail] = useState<any | null>(null);
 
   useEffect(() => {
     setLoading(true);
@@ -1526,16 +1591,27 @@ function InspectorDashboard({ plant, plantInfo, user }: { plant: string; plantIn
         </div>
 
         <div className="grid lg:grid-cols-3 gap-5">
+          {/* Inspection Reports & Stage Dossier Hub */}
+          <div className="lg:col-span-3">
+            <DashboardInspectionReportsWidget
+              onNavigateToInspect={(code) => onInspect ? onInspect(code) : undefined}
+              activeWo={myInspections?.[0]?.workOrder}
+            />
+          </div>
+
           <div className="lg:col-span-2 rounded-xl p-5" style={{ border: "1px solid var(--hairline)", backgroundColor: "var(--surface-card)" }}>
             <h2 className="t-display-sm mb-3" style={{ color: "var(--ink)" }}>My Recent Inspections</h2>
             <div className="space-y-2 max-h-96 overflow-y-auto scroll-fine">
               {myInspections.slice(0, 15).map((r: any) => (
-                <div key={r.id} className="flex items-center justify-between rounded-lg p-2.5" style={{ backgroundColor: "var(--canvas-soft)" }}>
+                <div key={r.id} onClick={() => setSelectedRecordForDetail(r)} className="flex items-center justify-between rounded-lg p-2.5 cursor-pointer hover:bg-[var(--surface-strong)] transition-colors" style={{ backgroundColor: "var(--canvas-soft)" }}>
                   <div className="min-w-0">
-                    <div className="t-body-sm" style={{ color: "var(--ink)" }}>{r.recordNo} · {r.stage?.name}</div>
+                    <div className="t-body-sm font-semibold" style={{ color: "var(--ink)" }}>{r.recordNo} · {r.stage?.name}</div>
                     <div className="t-label" style={{ color: "var(--muted)" }}>{r.workOrder?.woNumber} · HTU {r.htuNo} · {fmtDateTime(r.inspectedAt)}</div>
                   </div>
-                  <ResultBadge result={r.overallResult} />
+                  <div className="flex items-center gap-2">
+                    <ResultBadge result={r.overallResult} />
+                    <ChevronRight size={14} style={{ color: "var(--muted)" }} />
+                  </div>
                 </div>
               ))}
               {myInspections.length === 0 && <EmptyState message="No inspections for your stages." />}
@@ -1559,6 +1635,21 @@ function InspectorDashboard({ plant, plantInfo, user }: { plant: string; plantIn
           </div>
         </div>
       </div>
+
+      {/* Inspection Detail Drawer from Dashboard */}
+      <Sheet open={!!selectedRecordForDetail} onOpenChange={(o) => !o && setSelectedRecordForDetail(null)}>
+        <SheetContent
+          className="w-full md:w-[85vw] lg:w-[80vw] xl:w-[75vw] max-w-[1400px] p-0 overflow-y-auto"
+          style={{ backgroundColor: "var(--surface-card)" }}
+        >
+          {selectedRecordForDetail && (
+            <InspectionDetail
+              record={selectedRecordForDetail}
+              onClose={() => setSelectedRecordForDetail(null)}
+            />
+          )}
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }
@@ -2411,17 +2502,6 @@ function WorkOrderDetail({ wo, plant, onClose }: { wo: any; plant: string; onClo
                 {wo.completedQty} / {wo.plannedQty} <span className="t-label font-normal" style={{ color: "var(--muted)" }}>units</span>
               </div>
             </div>
-            {onClose && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={onClose}
-                className="h-8 w-8 p-0 text-[var(--muted)] hover:text-[var(--ink)]"
-                aria-label="Close"
-              >
-                <X size={16} />
-              </Button>
-            )}
           </div>
         </div>
       </SheetHeader>
@@ -3106,13 +3186,13 @@ function InspectionModule({ plant, user, prefillStage, onPrefillConsumed }: { pl
       </div>
 
       <Sheet open={showForm} onOpenChange={setShowForm}>
-        <SheetContent className="w-full md:w-[80vw] lg:w-[75vw] max-w-[1300px] p-0 overflow-y-auto" style={{ backgroundColor: "var(--surface-card)" }}>
+        <SheetContent className="w-full md:w-[85vw] lg:w-[80vw] xl:w-[75vw] max-w-[1400px] p-0 overflow-y-auto" style={{ backgroundColor: "var(--surface-card)" }}>
           <InspectionForm stages={stages} workOrders={workOrders} user={user} prefillStageCode={formPrefillStage} onSubmitted={() => { setShowForm(false); setFormPrefillStage(null); load(); }} onCancel={() => { setShowForm(false); setFormPrefillStage(null); }} />
         </SheetContent>
       </Sheet>
 
       <Sheet open={!!selected} onOpenChange={(o) => !o && setSelected(null)}>
-        <SheetContent className="w-full md:w-[80vw] lg:w-[75vw] max-w-[1300px] p-0 overflow-y-auto" style={{ backgroundColor: "var(--surface-card)" }}>
+        <SheetContent className="w-full md:w-[85vw] lg:w-[80vw] xl:w-[75vw] max-w-[1400px] p-0 overflow-y-auto" style={{ backgroundColor: "var(--surface-card)" }}>
           {selected && <InspectionDetail record={selected} onClose={() => setSelected(null)} />}
         </SheetContent>
       </Sheet>
@@ -3126,9 +3206,9 @@ function InspectionModule({ plant, user, prefillStage, onPrefillConsumed }: { pl
 //  - Mandatory Parameter Validations: Every single parameter must be recorded
 //  - Defect-Only Visual Proof: Only shown when one or more parameters fail
 // ============================================================
-function InspectionForm({ stages, workOrders, user, prefillStageCode, onSubmitted, onCancel, onStageCleared }: {
+function InspectionForm({ stages, workOrders, user, prefillStageCode, prefillWoId, onSubmitted, onCancel, onStageCleared }: {
   onStageCleared?: (info: any) => void;
-  stages: any[]; workOrders: any[]; user: User; prefillStageCode?: string | null; onSubmitted: () => void; onCancel: () => void;
+  stages: any[]; workOrders: any[]; user: User; prefillStageCode?: string | null; prefillWoId?: string | null; onSubmitted: () => void; onCancel: () => void;
 }) {
   const [activeStep, setActiveStep] = useState<1 | 2 | 3 | 4>(1);
   const [woId, setWoId] = useState("");
@@ -3269,25 +3349,87 @@ function InspectionForm({ stages, workOrders, user, prefillStageCode, onSubmitte
     return stages.filter(s => assigned.includes(s.stageCode));
   }, [stages, user.assignedStages]);
 
-  // Auto-select stage when prefillStageCode arrives
+  // Auto-select active Work Order if not yet selected
   useEffect(() => {
-    if (prefillStageCode && stages.length > 0 && !stage) {
-      const found = stages.find(s => s.stageCode === prefillStageCode);
-      if (!found) return;
-      const assigned = user.assignedStages || [];
-      const isAuthorized = assigned.length === 0 || assigned.includes(prefillStageCode);
-      if (isAuthorized) {
-        setStage(found);
-        setActiveStep(2);
-      } else {
-        toast({
-          title: "Access restricted",
-          description: `You are not assigned to stage ${prefillStageCode}. Your assigned stages: ${assigned.join(", ") || "none"}`,
-          variant: "destructive",
-        });
+    if (!woId) {
+      if (prefillWoId) {
+        setWoId(prefillWoId);
+      } else if (workOrders.length > 0) {
+        const defaultWo = workOrders.find(w => w.status === "In Progress" || w.status === "Released") || workOrders[0];
+        if (defaultWo) setWoId(defaultWo.id);
       }
     }
-  }, [prefillStageCode, stages, stage, user.assignedStages, toast]);
+  }, [prefillWoId, workOrders, woId]);
+
+  // Auto-select stage when prefillStageCode arrives, pre-populate parameters and jump straight to checksheet!
+  useEffect(() => {
+    if (prefillStageCode && !stage) {
+      let found = stages.find(s => s.stageCode === prefillStageCode);
+      if (!found) {
+        const cat = STAGE_CATALOG.find(c => c.code === prefillStageCode);
+        if (cat) {
+          found = {
+            id: `stage-${cat.code}`,
+            stageCode: cat.code,
+            name: cat.name,
+            documentRef: cat.docRef,
+            department: cat.category,
+            isCTQ: cat.params.some(p => p.ctq),
+            isGate: ["S01", "S06", "S10", "S13", "S15", "S16", "S17"].includes(cat.code),
+            characteristics: cat.params.map((p, idx) => ({
+              id: `char-${cat.code}-${idx + 1}`,
+              seq: idx + 1,
+              name: p.name,
+              specification: p.spec,
+              nominalValue: p.nominal,
+              lowerLimit: p.min !== p.nominal ? p.min : undefined,
+              upperLimit: p.max !== p.nominal ? p.max : undefined,
+              unit: p.unit,
+              method: p.method,
+              isCTQ: !!p.ctq,
+            }))
+          };
+        }
+      }
+
+      if (found) {
+        const assigned = user.assignedStages || [];
+        const isAuthorized = assigned.length === 0 || assigned.includes(prefillStageCode);
+        if (isAuthorized) {
+          setStage(found);
+
+          // Pre-populate nominal measurements for every characteristic so form is ready to inspect!
+          if (found.characteristics && found.characteristics.length > 0) {
+            const batch: Record<string, any> = {};
+            found.characteristics.forEach((c: any) => {
+              const val = (c.nominalValue !== null && c.nominalValue !== undefined && String(c.nominalValue).trim() !== "")
+                ? c.nominalValue
+                : (c.specification?.includes("Zero") || c.specification?.includes("Clean") || c.specification?.includes("Pass")) ? "Conforming" : "OK";
+              batch[c.id] = { value: val, pass: true, ctq: !!c.isCTQ, name: c.name };
+            });
+            setMeasurements(prev => ({ ...batch, ...prev }));
+          }
+
+          // Ensure work order is set
+          if (!woId && workOrders.length > 0) {
+            const defaultWo = prefillWoId ? workOrders.find(w => w.id === prefillWoId) : (workOrders.find(w => w.status === "In Progress" || w.status === "Released") || workOrders[0]);
+            if (defaultWo) setWoId(defaultWo.id);
+          }
+
+          autoSelectCrewFromHierarchy(found);
+
+          // Jump directly to Step 3 (Checksheet Parameters)
+          setActiveStep(3);
+        } else {
+          toast({
+            title: "Access restricted",
+            description: `You are not assigned to stage ${prefillStageCode}. Your assigned stages: ${assigned.join(", ") || "none"}`,
+            variant: "destructive",
+          });
+        }
+      }
+    }
+  }, [prefillStageCode, stages, stage, user.assignedStages, workOrders, woId, prefillWoId, autoSelectCrewFromHierarchy, toast]);
 
   // Fetch previous inspections + open NCRs for connection
   useEffect(() => {
@@ -3386,12 +3528,12 @@ function InspectionForm({ stages, workOrders, user, prefillStageCode, onSubmitte
   };
 
   const handleStepClick = (targetStep: 1 | 2 | 3 | 4) => {
+    // If woId not set, auto-pick default active work order so user is never blocked
+    if (!woId && workOrders.length > 0) {
+      const defaultWo = workOrders.find(w => w.status === "In Progress" || w.status === "Released") || workOrders[0];
+      if (defaultWo) setWoId(defaultWo.id);
+    }
     if (targetStep === 4) {
-      if (!woId) {
-        toast({ title: "Work order required", description: "Select a work order first.", variant: "destructive" });
-        setActiveStep(1);
-        return;
-      }
       if (!stage) {
         toast({ title: "Stage required", description: "Select a manufacturing stage first.", variant: "destructive" });
         setActiveStep(2);
@@ -3403,11 +3545,6 @@ function InspectionForm({ stages, workOrders, user, prefillStageCode, onSubmitte
     if (targetStep === 3 && !stage) {
       toast({ title: "Stage required", description: "Select a manufacturing stage first.", variant: "destructive" });
       setActiveStep(2);
-      return;
-    }
-    if (targetStep === 2 && !woId) {
-      toast({ title: "Work order required", description: "Select a work order first.", variant: "destructive" });
-      setActiveStep(1);
       return;
     }
     setActiveStep(targetStep);
@@ -5120,19 +5257,6 @@ function InspectionDetail({ record, onClose }: { record: any; onClose?: () => vo
             <FileJson size={13} style={{ color: "#d97706" }} />
             <span className="hidden sm:inline">JSON</span>
           </Button>
-
-          {onClose && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={onClose}
-              data-tooltip="Close inspection drawer"
-              data-tooltip-pos="left"
-              className="h-8 w-8 p-0 rounded-lg ml-1"
-            >
-              <X size={16} />
-            </Button>
-          )}
         </div>
       </SheetHeader>
 
@@ -9293,7 +9417,6 @@ function ReworkJobDetail({ job, user, onClose, onUpdated, canEnterCost }: {
                 {job.attemptNumber > 1 && <span className="t-label px-1.5 py-0.5 rounded" style={{ backgroundColor: "var(--surface-strong)", color: "var(--muted)" }}>Attempt {job.attemptNumber}</span>}
               </div>
             </div>
-            <Button onClick={onClose} variant="ghost" size="sm"><X size={16} /></Button>
           </div>
         </SheetHeader>
 
