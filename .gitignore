@@ -48,6 +48,8 @@ dev.log
 dev.out.log
 test
 prompt
+scratch/
+Inspections form/
 
 server.log
 # Skills directory

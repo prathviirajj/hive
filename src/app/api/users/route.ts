@@ -18,7 +18,7 @@ export async function GET(req: NextRequest) {
       id: true, username: true, name: true, email: true, role: true,
       department: true, plant: true, phone: true, employeeId: true,
       status: true, assignedStages: true, managedStages: true,
-      shiftPreference: true, createdAt: true,
+      shiftPreference: true, managerId: true, createdAt: true,
     },
   });
 
@@ -51,19 +51,20 @@ export async function POST(req: NextRequest) {
       assignedStages: body.assignedStages ? JSON.stringify(body.assignedStages) : null,
       managedStages: body.managedStages ? JSON.stringify(body.managedStages) : null,
       shiftPreference: body.shiftPreference || null,
+      managerId: body.managerId || null,
     },
   });
   return NextResponse.json({ user: { ...user, password: undefined } });
 }
 
-// PATCH /api/users - update user (role, status, permissions, stage assignments)
+// PATCH /api/users - update user (role, status, permissions, stage assignments, managerId)
 export async function PATCH(req: NextRequest) {
   const body = await req.json();
   const { id, ...updates } = body;
   if (!id) return NextResponse.json({ error: "id required" }, { status: 400 });
 
   const data: any = {};
-  for (const k of ["role", "department", "status", "shiftPreference", "phone", "employeeId", "plant"]) {
+  for (const k of ["role", "department", "status", "shiftPreference", "phone", "employeeId", "plant", "managerId"]) {
     if (updates[k] !== undefined) data[k] = updates[k];
   }
   if (updates.assignedStages) data.assignedStages = JSON.stringify(updates.assignedStages);

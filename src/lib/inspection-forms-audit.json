@@ -1,0 +1,1007 @@
+{
+  "totalDocs": 94,
+  "foundCount": 64,
+  "missingCount": 30,
+  "audit": [
+    {
+      "docCode": "QCI/F/09/01",
+      "stage": "Rolling & forming",
+      "tab": "Rolling Checklist - Current; Daily FPY - Rolling",
+      "found": false,
+      "matchingPdfs": []
+    },
+    {
+      "docCode": "PRO/F/02/04",
+      "stage": "Single spot Welding",
+      "tab": "Spot Welding Checklist (Done)",
+      "found": false,
+      "matchingPdfs": []
+    },
+    {
+      "docCode": "QCI/F/02/02",
+      "stage": "Single spot Welding",
+      "tab": "Spot Welding Checklist (Done)",
+      "found": true,
+      "matchingPdfs": [
+        "QCI -F-02- 01 ROLLING CHECK LIST 1 (1).pdf",
+        "QCI -F-02- 01 ROLLING CHECK LIST 1.pdf",
+        "QCI -F-02- 01 ROLLING CHECK LISTn 1 (1).pdf",
+        "QCI -F-02- 01 ROLLING CHECK LISTn 1.pdf",
+        "QCI -F-02- 02 REGISTANCE SPOT WELDINGCheck list (1) 1.pdf",
+        "QCI -F-02- 03  EDGE CUTTING QCI 1.pdf",
+        "QCI -F-02- 04 check list- TIG WELDING 1.pdf",
+        "QCI -F-02- 05 Individual fin testing 1.pdf"
+      ]
+    },
+    {
+      "docCode": "PRO/F/02/08",
+      "stage": "Multi spot Welding",
+      "tab": "Spot Welding Checklist (Done)",
+      "found": false,
+      "matchingPdfs": []
+    },
+    {
+      "docCode": "PRO/F/02/06",
+      "stage": "Seam Welding & Trimming",
+      "tab": "Individual Fin Test(Done)",
+      "found": false,
+      "matchingPdfs": []
+    },
+    {
+      "docCode": "QCI/F/02/03",
+      "stage": "Edge Cutting",
+      "tab": "Edge Cutting Checklist",
+      "found": true,
+      "matchingPdfs": [
+        "QCI -F-02- 03  EDGE CUTTING QCI 1.pdf"
+      ]
+    },
+    {
+      "docCode": "QCI/F/05/08",
+      "stage": "Tig Welding & fin sandering",
+      "tab": "Auto TIG Welding Checklist; Individual Fin Test(Done)",
+      "found": true,
+      "matchingPdfs": [
+        "QCI -F-05-08  Radiator Leak Test Report 1 (1).pdf",
+        "QCI -F-05-08  Radiator Leak Test Report 1.pdf"
+      ]
+    },
+    {
+      "docCode": "QCI/F/05/01",
+      "stage": "Pipe Cutting By Plasma & Deburring",
+      "tab": "Header In-Process Quality Plan",
+      "found": false,
+      "matchingPdfs": []
+    },
+    {
+      "docCode": "QCI/F/09/02",
+      "stage": "Pipe Cutting By Plasma & Deburring",
+      "tab": "Header In-Process Quality Plan",
+      "found": false,
+      "matchingPdfs": []
+    },
+    {
+      "docCode": "QCI/F/05/02",
+      "stage": "Header Assembly with Pretreatment Process",
+      "tab": "CO2 Welding Parameters(Done); Header Assembly FPY",
+      "found": false,
+      "matchingPdfs": []
+    },
+    {
+      "docCode": "QCI/F/05/14",
+      "stage": "Header Assembly with Pretreatment Process",
+      "tab": "CO2 Welding Parameters(Done); Header Assembly FPY",
+      "found": true,
+      "matchingPdfs": [
+        "QCI-F-05-14 DP TEST format 1.pdf"
+      ]
+    },
+    {
+      "docCode": "QCI/F/02/06",
+      "stage": "Fin Flaring Process",
+      "tab": "In-Process Quality Plan",
+      "found": false,
+      "matchingPdfs": []
+    },
+    {
+      "docCode": "QCI/F/05/04",
+      "stage": "Assembly (Erection)",
+      "tab": "Gauge Setting Checklist; Erection Checklist - IMP; Post-Erection Checklist (NA); Daily FPY - Erection (NA)",
+      "found": false,
+      "matchingPdfs": []
+    },
+    {
+      "docCode": "QCI/F/05/05",
+      "stage": "Assembly (Erection)",
+      "tab": "Gauge Setting Checklist; Erection Checklist - IMP; Post-Erection Checklist (NA); Daily FPY - Erection (NA)",
+      "found": true,
+      "matchingPdfs": [
+        "QCI -F-05-05 Check list for Assembly Guage 1.pdf",
+        "QCI -F-05-07 Check list for Spatter cleaning 1 (1).pdf",
+        "QCI -F-05-07 Check list for Spatter cleaning 1 (2).pdf",
+        "QCI -F-05-07 Check list for Spatter cleaning 1.pdf",
+        "QCI -F-05-08  Radiator Leak Test Report 1 (1).pdf",
+        "QCI -F-05-08  Radiator Leak Test Report 1.pdf",
+        "QCI -F-05-09 Check list for leak testing 1.pdf",
+        "QCI-F-05-03 - CHECK POINTS IN ERRECTION 1 (1).pdf",
+        "QCI-F-05-03 - CHECK POINTS IN ERRECTION 1.pdf",
+        "QCI-F-05-06 check point in co2 dept 1 (1).pdf",
+        "QCI-F-05-06 check point in co2 dept 1 (2).pdf",
+        "QCI-F-05-06 check point in co2 dept 1.pdf",
+        "QCI-F-05-10 VISUAL ASSESMENT ON EDGES QCI-F-09-05-A 1.pdf",
+        "QCI-F-05-12 DIMNSN TST 1.pdf",
+        "QCI-F-05-13 LEAK TEST-PRESSURE TEST 1.pdf",
+        "QCI-F-05-14 DP TEST format 1.pdf"
+      ]
+    },
+    {
+      "docCode": "QCI/F/05/03",
+      "stage": "Assembly (Erection)",
+      "tab": "Gauge Setting Checklist; Erection Checklist - IMP; Post-Erection Checklist (NA); Daily FPY - Erection (NA)",
+      "found": true,
+      "matchingPdfs": [
+        "QCI-F-05-03 - CHECK POINTS IN ERRECTION 1 (1).pdf",
+        "QCI-F-05-03 - CHECK POINTS IN ERRECTION 1.pdf"
+      ]
+    },
+    {
+      "docCode": "QCI/F/05/07",
+      "stage": "Spatter Cleaning",
+      "tab": "Spatter Cleaning - Current (Don",
+      "found": true,
+      "matchingPdfs": [
+        "QCI -F-05-07 Check list for Spatter cleaning 1 (1).pdf",
+        "QCI -F-05-07 Check list for Spatter cleaning 1 (2).pdf",
+        "QCI -F-05-07 Check list for Spatter cleaning 1.pdf"
+      ]
+    },
+    {
+      "docCode": "QCI/F/10/01 Rev.003",
+      "stage": "Pre-Galvanizing Release",
+      "tab": "Before Galva; Pre-Galvanizing Checklist",
+      "found": true,
+      "matchingPdfs": [
+        "DOC NO. QCI F 10 01. Rev.No. 003. Date 08.10.2023.Check list Before Galvanizing.pdf"
+      ]
+    },
+    {
+      "docCode": "QCI/F/10/02 Rev.005",
+      "stage": "HDG Pretreatment",
+      "tab": "Preparation ; Pretreatment Check Sheet",
+      "found": true,
+      "matchingPdfs": [
+        "DOC NO. QCI F 10 01. Rev.No. 003. Date 08.10.2023.Check list Before Galvanizing.pdf",
+        "DOC NO. QCI F 10 02. Rev.No.005 Date 19.08.2025. PRE-TREATMENT  CHECK SHEET.pdf",
+        "DOC NO. QCI F 10 03   REV. 03 DT.  30.03.2026. GALVANIZING CHECK SHEET.pdf"
+      ]
+    },
+    {
+      "docCode": "QCI/F/10/05 Rev.004",
+      "stage": "HDG Laboratory Control",
+      "tab": "Lab- PT check sheet ; Lab PT Check Sheet",
+      "found": true,
+      "matchingPdfs": [
+        "DOC ID  QCI F 10 05 PRE-TREATMENT & POST TREATMENT CHEMICAL TEST REPORT.pdf",
+        "DOC NO. QCI F 10 02. Rev.No.005 Date 19.08.2025. PRE-TREATMENT  CHECK SHEET.pdf"
+      ]
+    },
+    {
+      "docCode": "QCI/F/10/03 Rev.03",
+      "stage": "Hot-Dip Galvanizing",
+      "tab": "Galvanizing ; Galvanizing Check Sheet",
+      "found": true,
+      "matchingPdfs": [
+        "DOC NO. QCI F 10 01. Rev.No. 003. Date 08.10.2023.Check list Before Galvanizing.pdf",
+        "DOC NO. QCI F 10 03   REV. 03 DT.  30.03.2026. GALVANIZING CHECK SHEET.pdf"
+      ]
+    },
+    {
+      "docCode": "QCI/F/10/04 Rev.02/03",
+      "stage": "Final HDG Inspection and Type Test",
+      "tab": "Final Insp. Radiator Report  ; Final HDG Radiator Report; Final Insp. Tank  Report   (2); Final HDG Tank Report; Final HDG Report; HDG Type Test Certificate",
+      "found": true,
+      "matchingPdfs": [
+        "DOC NO. QCI F 10 04 FINAL JOB INSPECTION REPORT  (GALVANIZING).pdf"
+      ]
+    },
+    {
+      "docCode": "QCI/F/10/06 Rev.01",
+      "stage": "Final HDG Inspection and Type Test",
+      "tab": "Final Insp. Radiator Report  ; Final HDG Radiator Report; Final Insp. Tank  Report   (2); Final HDG Tank Report; Final HDG Report; HDG Type Test Certificate",
+      "found": true,
+      "matchingPdfs": [
+        "DOC ID  QCI F 10 06 TEST CERTIFICATE FOR HOT DIP GALVANIZED TYPE TEST.pdf"
+      ]
+    },
+    {
+      "docCode": "QCI/F/06/01",
+      "stage": "Grit Blasting for only painted radiators( MS)",
+      "tab": "02 Blasting Checklist; 03 Dust Assessment; 05 Humidity Report",
+      "found": true,
+      "matchingPdfs": [
+        "DOC. NO. QCI F 06 01 Rev. 03 dt. 27.02.2022 CHECK LIST FOR BLASTING.pdf"
+      ]
+    },
+    {
+      "docCode": "QCI/F/06/02",
+      "stage": "Grit Blasting for only painted radiators( MS)",
+      "tab": "02 Blasting Checklist; 03 Dust Assessment; 05 Humidity Report",
+      "found": true,
+      "matchingPdfs": [
+        "DOC. NO. QCI F 06 01 Rev. 03 dt. 27.02.2022 CHECK LIST FOR BLASTING.pdf"
+      ]
+    },
+    {
+      "docCode": "QCI/F/06/03",
+      "stage": "Grit Blasting for only painted radiators( MS)",
+      "tab": "02 Blasting Checklist; 03 Dust Assessment; 05 Humidity Report",
+      "found": true,
+      "matchingPdfs": [
+        "DOC. NO. QCI F 06 01 Rev. 03 dt. 27.02.2022 CHECK LIST FOR BLASTING.pdf"
+      ]
+    },
+    {
+      "docCode": "PRO/F/02/25",
+      "stage": "Internal cleaning of radaitor before inetrnal coating",
+      "tab": "06 Internal Cleaning pH",
+      "found": false,
+      "matchingPdfs": []
+    },
+    {
+      "docCode": "QCI/F/06/04",
+      "stage": "Internal coating",
+      "tab": "Internal Coating Checksheet; 04 Corrosion Protection",
+      "found": false,
+      "matchingPdfs": []
+    },
+    {
+      "docCode": "PRO/S/02/60",
+      "stage": "Tilting the Radiator A & B side",
+      "tab": "Internal Coating Checksheet",
+      "found": false,
+      "matchingPdfs": []
+    },
+    {
+      "docCode": "QCI/F/06/08",
+      "stage": "Internal pipe & flange cleaning & coating & ovening",
+      "tab": "Internal Coating Checksheet; 04 Corrosion Protection",
+      "found": false,
+      "matchingPdfs": []
+    },
+    {
+      "docCode": "QCI/S/06/05",
+      "stage": "Endoscopic Check",
+      "tab": "ED Checksheet",
+      "found": true,
+      "matchingPdfs": [
+        "QCI-S-06-05-HOW TO USE ENDOSCOPE CAMERA TO CHECK INTERNAL COATING.pdf"
+      ]
+    },
+    {
+      "docCode": "QCI/F/06/10",
+      "stage": "Endoscopic Check",
+      "tab": "ED Checksheet",
+      "found": true,
+      "matchingPdfs": [
+        "QCI-F-06-10 ENDOSCOPIC  CHECKSHEET.pdf"
+      ]
+    },
+    {
+      "docCode": "QCI/F/06/07",
+      "stage": "Oil circulation inside radiator",
+      "tab": "08 Oil Flushing",
+      "found": false,
+      "matchingPdfs": []
+    },
+    {
+      "docCode": "QCI/F/06/06",
+      "stage": "Spray painting & Final inspection",
+      "tab": "09 Final Paint Inspection; 07 Peel Off Test",
+      "found": true,
+      "matchingPdfs": [
+        "DOC. NO. QCI F 06 01 Rev. 03 dt. 27.02.2022 CHECK LIST FOR BLASTING.pdf",
+        "QCI-F-06-10 ENDOSCOPIC  CHECKSHEET.pdf",
+        "QCI-F-06-12-CHECKSHEET FOR INTERNAL CLEANING & COATING.pdf",
+        "QCI-F-06-13 Final Inspection & Packing Checksheet ( Internal Cleaning & Coating Dept.).pdf"
+      ]
+    },
+    {
+      "docCode": "QCI/F/03/01",
+      "stage": "Final product inspection",
+      "tab": "12 Final Product Inspection",
+      "found": false,
+      "matchingPdfs": []
+    },
+    {
+      "docCode": "QCI/F/07/01",
+      "stage": "Dry air / N2 Filling",
+      "tab": "13 Packing Checksheet",
+      "found": true,
+      "matchingPdfs": [
+        "QCI-F-07-01 CHECK POINT IN PACKING.pdf"
+      ]
+    },
+    {
+      "docCode": "QCI/F/07/02",
+      "stage": "Crate / pallet making & fumigation",
+      "tab": "13 Packing Checksheet; 15 Container Loading",
+      "found": true,
+      "matchingPdfs": [
+        "QCI-F-07-02 CHECK POINTS IN CONTAINER LOADING.pdf"
+      ]
+    },
+    {
+      "docCode": "PRO/F/02/05",
+      "stage": "TC & Documantation",
+      "tab": "14 Dispatch Checklist",
+      "found": false,
+      "matchingPdfs": []
+    },
+    {
+      "docCode": "QCI/F/01/02",
+      "stage": "IS 513 Grade D; PO",
+      "tab": "Micrometer, tape, visual, MTC",
+      "found": false,
+      "matchingPdfs": []
+    },
+    {
+      "docCode": "QCI/P/01",
+      "stage": "Nitrile rubber/Teflon; PO/IEEMA-9/drawing",
+      "tab": "Vernier/visual",
+      "found": false,
+      "matchingPdfs": []
+    },
+    {
+      "docCode": "QCI/F/05",
+      "stage": "Header In-Process Quality Plan; In-Process Quality Plan",
+      "tab": "Header operations",
+      "found": true,
+      "matchingPdfs": [
+        "QCI -F-05-05 Check list for Assembly Guage 1.pdf",
+        "QCI -F-05-07 Check list for Spatter cleaning 1 (1).pdf",
+        "QCI -F-05-07 Check list for Spatter cleaning 1 (2).pdf",
+        "QCI -F-05-07 Check list for Spatter cleaning 1.pdf",
+        "QCI -F-05-08  Radiator Leak Test Report 1 (1).pdf",
+        "QCI -F-05-08  Radiator Leak Test Report 1.pdf",
+        "QCI -F-05-09 Check list for leak testing 1.pdf",
+        "QCI-F-05-03 - CHECK POINTS IN ERRECTION 1 (1).pdf",
+        "QCI-F-05-03 - CHECK POINTS IN ERRECTION 1.pdf",
+        "QCI-F-05-06 check point in co2 dept 1 (1).pdf",
+        "QCI-F-05-06 check point in co2 dept 1 (2).pdf",
+        "QCI-F-05-06 check point in co2 dept 1.pdf",
+        "QCI-F-05-10 VISUAL ASSESMENT ON EDGES QCI-F-09-05-A 1.pdf",
+        "QCI-F-05-12 DIMNSN TST 1.pdf",
+        "QCI-F-05-13 LEAK TEST-PRESSURE TEST 1.pdf",
+        "QCI-F-05-14 DP TEST format 1.pdf"
+      ]
+    },
+    {
+      "docCode": "QCI/F/02",
+      "stage": "Header In-Process Quality Plan; In-Process Quality Plan",
+      "tab": "Header operations",
+      "found": true,
+      "matchingPdfs": [
+        "QCI -F-02- 01 ROLLING CHECK LIST 1 (1).pdf",
+        "QCI -F-02- 01 ROLLING CHECK LIST 1.pdf",
+        "QCI -F-02- 01 ROLLING CHECK LISTn 1 (1).pdf",
+        "QCI -F-02- 01 ROLLING CHECK LISTn 1.pdf",
+        "QCI -F-02- 02 REGISTANCE SPOT WELDINGCheck list (1) 1.pdf",
+        "QCI -F-02- 03  EDGE CUTTING QCI 1.pdf",
+        "QCI -F-02- 04 check list- TIG WELDING 1.pdf",
+        "QCI -F-02- 05 Individual fin testing 1.pdf"
+      ]
+    },
+    {
+      "docCode": "QCI/F/10/04 Rev.02",
+      "stage": "In-Process Quality Plan; Pre-Galvanizing Checklist; Pretreatment Check Sheet; Galvanizing Check Sheet; Final HDG Radiator Report; Lab PT Check Sheet",
+      "tab": "Master sequence",
+      "found": true,
+      "matchingPdfs": [
+        "DOC NO. QCI F 10 04 FINAL JOB INSPECTION REPORT  (GALVANIZING).pdf"
+      ]
+    },
+    {
+      "docCode": "QCI/F/05/08 Rev.03",
+      "stage": "In-Process Quality Plan; Leak Test Report - Current; Leak Inspection - Current",
+      "tab": "Stage 14",
+      "found": true,
+      "matchingPdfs": [
+        "QCI -F-05-08  Radiator Leak Test Report 1 (1).pdf",
+        "QCI -F-05-08  Radiator Leak Test Report 1.pdf"
+      ]
+    },
+    {
+      "docCode": "QCI/F/05/09 Rev.07",
+      "stage": "In-Process Quality Plan; Leak Test Report - Current; Leak Inspection - Current",
+      "tab": "Stage 14",
+      "found": true,
+      "matchingPdfs": [
+        "QCI -F-05-09 Check list for leak testing 1.pdf",
+        "QCI-F-05-10 VISUAL ASSESMENT ON EDGES QCI-F-09-05-A 1.pdf"
+      ]
+    },
+    {
+      "docCode": "QCI/F/06",
+      "stage": "In-Process Quality Plan",
+      "tab": "Coating/final/packing",
+      "found": true,
+      "matchingPdfs": [
+        "DOC. NO. QCI F 06 01 Rev. 03 dt. 27.02.2022 CHECK LIST FOR BLASTING.pdf",
+        "QCI-F-06-10 ENDOSCOPIC  CHECKSHEET.pdf",
+        "QCI-F-06-12-CHECKSHEET FOR INTERNAL CLEANING & COATING.pdf",
+        "QCI-F-06-13 Final Inspection & Packing Checksheet ( Internal Cleaning & Coating Dept.).pdf"
+      ]
+    },
+    {
+      "docCode": "QCI/F/07",
+      "stage": "In-Process Quality Plan",
+      "tab": "Coating/final/packing",
+      "found": true,
+      "matchingPdfs": [
+        "QCI-F-07-01 CHECK POINT IN PACKING.pdf",
+        "QCI-F-07-02 CHECK POINTS IN CONTAINER LOADING.pdf"
+      ]
+    },
+    {
+      "docCode": "QCI/F/03",
+      "stage": "In-Process Quality Plan",
+      "tab": "Coating/final/packing",
+      "found": false,
+      "matchingPdfs": []
+    },
+    {
+      "docCode": "QCI/F/05/04 Rev.03",
+      "stage": "CO2 Welding Parameters",
+      "tab": "Welding",
+      "found": false,
+      "matchingPdfs": []
+    },
+    {
+      "docCode": "QCI/F/09/06 Rev.02",
+      "stage": "Header Assembly FPY; Header Assembly FPY - Copy",
+      "tab": "Header FPY",
+      "found": false,
+      "matchingPdfs": []
+    },
+    {
+      "docCode": "QCI/F/10/04 Rev.03",
+      "stage": "Final HDG Radiator Report; Final HDG Tank Report",
+      "tab": "HDG final",
+      "found": true,
+      "matchingPdfs": [
+        "DOC NO. QCI F 10 04 FINAL JOB INSPECTION REPORT  (GALVANIZING).pdf"
+      ]
+    },
+    {
+      "docCode": "QCI/F/10/04",
+      "stage": "Final HDG Radiator Report; Final HDG Tank Report",
+      "tab": "HDG final",
+      "found": true,
+      "matchingPdfs": [
+        "DOC NO. QCI F 10 04 FINAL JOB INSPECTION REPORT  (GALVANIZING).pdf"
+      ]
+    },
+    {
+      "docCode": "QCI/F/02/05 Rev.01",
+      "stage": "Individual Fin Test; In-Process Quality Plan",
+      "tab": "Fin leak test",
+      "found": true,
+      "matchingPdfs": [
+        "QCI -F-02- 05 Individual fin testing 1.pdf"
+      ]
+    },
+    {
+      "docCode": "QCI/F/02/01 Rev.05/04",
+      "stage": "Rolling Checklist - Current; Rolling Checklist - Legacy; Erection Checklist - Current; Erection Checklist - Legacy; Spatter Cleaning - Current; Spatter Cleaning - Legacy; Leak Test Report - Current; Leak Test Report - Legacy; Leak Inspection - Current; Leak Inspection - Legacy; Header Assembly FPY; Header Assembly FPY - Copy",
+      "tab": "Revision control",
+      "found": true,
+      "matchingPdfs": [
+        "QCI -F-02- 01 ROLLING CHECK LIST 1 (1).pdf",
+        "QCI -F-02- 01 ROLLING CHECK LIST 1.pdf",
+        "QCI -F-02- 01 ROLLING CHECK LISTn 1 (1).pdf",
+        "QCI -F-02- 01 ROLLING CHECK LISTn 1.pdf"
+      ]
+    },
+    {
+      "docCode": "QCI/F/05/03 Rev.09/08",
+      "stage": "Rolling Checklist - Current; Rolling Checklist - Legacy; Erection Checklist - Current; Erection Checklist - Legacy; Spatter Cleaning - Current; Spatter Cleaning - Legacy; Leak Test Report - Current; Leak Test Report - Legacy; Leak Inspection - Current; Leak Inspection - Legacy; Header Assembly FPY; Header Assembly FPY - Copy",
+      "tab": "Revision control",
+      "found": true,
+      "matchingPdfs": [
+        "QCI-F-05-03 - CHECK POINTS IN ERRECTION 1 (1).pdf",
+        "QCI-F-05-03 - CHECK POINTS IN ERRECTION 1.pdf"
+      ]
+    },
+    {
+      "docCode": "QCI/F/05/07 Rev.02/01",
+      "stage": "Rolling Checklist - Current; Rolling Checklist - Legacy; Erection Checklist - Current; Erection Checklist - Legacy; Spatter Cleaning - Current; Spatter Cleaning - Legacy; Leak Test Report - Current; Leak Test Report - Legacy; Leak Inspection - Current; Leak Inspection - Legacy; Header Assembly FPY; Header Assembly FPY - Copy",
+      "tab": "Revision control",
+      "found": true,
+      "matchingPdfs": [
+        "QCI -F-05-07 Check list for Spatter cleaning 1 (1).pdf",
+        "QCI -F-05-07 Check list for Spatter cleaning 1 (2).pdf",
+        "QCI -F-05-07 Check list for Spatter cleaning 1.pdf"
+      ]
+    },
+    {
+      "docCode": "QCI/F/05/08 Rev.03/02",
+      "stage": "Rolling Checklist - Current; Rolling Checklist - Legacy; Erection Checklist - Current; Erection Checklist - Legacy; Spatter Cleaning - Current; Spatter Cleaning - Legacy; Leak Test Report - Current; Leak Test Report - Legacy; Leak Inspection - Current; Leak Inspection - Legacy; Header Assembly FPY; Header Assembly FPY - Copy",
+      "tab": "Revision control",
+      "found": true,
+      "matchingPdfs": [
+        "QCI -F-05-08  Radiator Leak Test Report 1 (1).pdf",
+        "QCI -F-05-08  Radiator Leak Test Report 1.pdf"
+      ]
+    },
+    {
+      "docCode": "QCI/F/05/09 Rev.07/06",
+      "stage": "Rolling Checklist - Current; Rolling Checklist - Legacy; Erection Checklist - Current; Erection Checklist - Legacy; Spatter Cleaning - Current; Spatter Cleaning - Legacy; Leak Test Report - Current; Leak Test Report - Legacy; Leak Inspection - Current; Leak Inspection - Legacy; Header Assembly FPY; Header Assembly FPY - Copy",
+      "tab": "Revision control",
+      "found": true,
+      "matchingPdfs": [
+        "QCI -F-05-09 Check list for leak testing 1.pdf",
+        "QCI-F-05-10 VISUAL ASSESMENT ON EDGES QCI-F-09-05-A 1.pdf"
+      ]
+    },
+    {
+      "docCode": "QCI/F/02/01 Rev.05",
+      "stage": "Rolling Checklist - Current (DONE)",
+      "tab": "Parameter checklist",
+      "found": true,
+      "matchingPdfs": [
+        "QCI -F-02- 01 ROLLING CHECK LIST 1 (1).pdf",
+        "QCI -F-02- 01 ROLLING CHECK LIST 1.pdf",
+        "QCI -F-02- 01 ROLLING CHECK LISTn 1 (1).pdf",
+        "QCI -F-02- 01 ROLLING CHECK LISTn 1.pdf"
+      ]
+    },
+    {
+      "docCode": "QCI/F/02/01 Rev.04",
+      "stage": "Rolling Checklist - Legacy",
+      "tab": "Legacy parameter checklist",
+      "found": true,
+      "matchingPdfs": [
+        "QCI -F-02- 01 ROLLING CHECK LIST 1 (1).pdf",
+        "QCI -F-02- 01 ROLLING CHECK LIST 1.pdf",
+        "QCI -F-02- 01 ROLLING CHECK LISTn 1 (1).pdf",
+        "QCI -F-02- 01 ROLLING CHECK LISTn 1.pdf"
+      ]
+    },
+    {
+      "docCode": "QCI/F/09/05 Rev.01",
+      "stage": "Daily FPY - Rolling",
+      "tab": "Daily FPY record",
+      "found": true,
+      "matchingPdfs": [
+        "QCI F 0905 ROLLING -FPY 1.pdf",
+        "QCI-F-05-10 VISUAL ASSESMENT ON EDGES QCI-F-09-05-A 1.pdf"
+      ]
+    },
+    {
+      "docCode": "QCI/F/02/02 Rev.04",
+      "stage": "Spot Welding Checklist",
+      "tab": "Resistance-welding checklist",
+      "found": true,
+      "matchingPdfs": [
+        "QCI -F-02- 01 ROLLING CHECK LIST 1 (1).pdf",
+        "QCI -F-02- 01 ROLLING CHECK LIST 1.pdf",
+        "QCI -F-02- 01 ROLLING CHECK LISTn 1 (1).pdf",
+        "QCI -F-02- 01 ROLLING CHECK LISTn 1.pdf",
+        "QCI -F-02- 02 REGISTANCE SPOT WELDINGCheck list (1) 1.pdf",
+        "QCI -F-02- 03  EDGE CUTTING QCI 1.pdf",
+        "QCI -F-02- 04 check list- TIG WELDING 1.pdf",
+        "QCI -F-02- 05 Individual fin testing 1.pdf"
+      ]
+    },
+    {
+      "docCode": "QCI/F/02/03 Rev.04",
+      "stage": "Edge Cutting Checklist",
+      "tab": "Process checklist",
+      "found": true,
+      "matchingPdfs": [
+        "QCI -F-02- 03  EDGE CUTTING QCI 1.pdf"
+      ]
+    },
+    {
+      "docCode": "QCI/F/02/04 Rev.03",
+      "stage": "Auto TIG Welding Checklist",
+      "tab": "Welding checklist",
+      "found": true,
+      "matchingPdfs": [
+        "QCI -F-02- 04 check list- TIG WELDING 1.pdf"
+      ]
+    },
+    {
+      "docCode": "QCI/F/05/04 Rev.02",
+      "stage": "Welding Parameters - Legacy",
+      "tab": "Legacy welding parameter checklist",
+      "found": false,
+      "matchingPdfs": []
+    },
+    {
+      "docCode": "QCI/F/05/05 Rev.03",
+      "stage": "Gauge Setting Checklist",
+      "tab": "Fixture/setup checklist",
+      "found": true,
+      "matchingPdfs": [
+        "QCI -F-05-05 Check list for Assembly Guage 1.pdf",
+        "QCI -F-05-07 Check list for Spatter cleaning 1 (1).pdf",
+        "QCI -F-05-07 Check list for Spatter cleaning 1 (2).pdf",
+        "QCI -F-05-07 Check list for Spatter cleaning 1.pdf",
+        "QCI -F-05-08  Radiator Leak Test Report 1 (1).pdf",
+        "QCI -F-05-08  Radiator Leak Test Report 1.pdf",
+        "QCI -F-05-09 Check list for leak testing 1.pdf",
+        "QCI-F-05-03 - CHECK POINTS IN ERRECTION 1 (1).pdf",
+        "QCI-F-05-03 - CHECK POINTS IN ERRECTION 1.pdf",
+        "QCI-F-05-06 check point in co2 dept 1 (1).pdf",
+        "QCI-F-05-06 check point in co2 dept 1 (2).pdf",
+        "QCI-F-05-06 check point in co2 dept 1.pdf",
+        "QCI-F-05-10 VISUAL ASSESMENT ON EDGES QCI-F-09-05-A 1.pdf",
+        "QCI-F-05-12 DIMNSN TST 1.pdf",
+        "QCI-F-05-13 LEAK TEST-PRESSURE TEST 1.pdf",
+        "QCI-F-05-14 DP TEST format 1.pdf"
+      ]
+    },
+    {
+      "docCode": "QCI/F/05/03 Rev.09",
+      "stage": "Erection Checklist - Current",
+      "tab": "Dimensional and visual checklist",
+      "found": true,
+      "matchingPdfs": [
+        "QCI-F-05-03 - CHECK POINTS IN ERRECTION 1 (1).pdf",
+        "QCI-F-05-03 - CHECK POINTS IN ERRECTION 1.pdf"
+      ]
+    },
+    {
+      "docCode": "QCI/F/05/03 Rev.08",
+      "stage": "Erection Checklist - Legacy",
+      "tab": "Legacy dimensional checklist",
+      "found": true,
+      "matchingPdfs": [
+        "QCI-F-05-03 - CHECK POINTS IN ERRECTION 1 (1).pdf",
+        "QCI-F-05-03 - CHECK POINTS IN ERRECTION 1.pdf"
+      ]
+    },
+    {
+      "docCode": "QCI/F/09/07 Rev.02",
+      "stage": "Daily FPY - Erection",
+      "tab": "Daily FPY record",
+      "found": true,
+      "matchingPdfs": [
+        "QCI F 0907 ERRECTION -FPY 1.pdf"
+      ]
+    },
+    {
+      "docCode": "QCI/F/05/06 Rev.02",
+      "stage": "CO2 Full Welding Checklist",
+      "tab": "Before/after welding checklist",
+      "found": true,
+      "matchingPdfs": [
+        "QCI-F-05-06 check point in co2 dept 1 (1).pdf",
+        "QCI-F-05-06 check point in co2 dept 1 (2).pdf",
+        "QCI-F-05-06 check point in co2 dept 1.pdf"
+      ]
+    },
+    {
+      "docCode": "QCI/F/05/06",
+      "stage": "CO2 Welding Checklist - Alt",
+      "tab": "Alternative detailed welding checklist",
+      "found": true,
+      "matchingPdfs": [
+        "QCI-F-05-06 check point in co2 dept 1 (1).pdf",
+        "QCI-F-05-06 check point in co2 dept 1 (2).pdf",
+        "QCI-F-05-06 check point in co2 dept 1.pdf"
+      ]
+    },
+    {
+      "docCode": "QCI/F/05/07 Rev.02",
+      "stage": "Spatter Cleaning - Current",
+      "tab": "Cleaning and visual checklist",
+      "found": true,
+      "matchingPdfs": [
+        "QCI -F-05-07 Check list for Spatter cleaning 1 (1).pdf",
+        "QCI -F-05-07 Check list for Spatter cleaning 1 (2).pdf",
+        "QCI -F-05-07 Check list for Spatter cleaning 1.pdf"
+      ]
+    },
+    {
+      "docCode": "QCI/F/05/07 Rev.01",
+      "stage": "Spatter Cleaning - Legacy",
+      "tab": "Legacy cleaning checklist",
+      "found": true,
+      "matchingPdfs": [
+        "QCI -F-05-07 Check list for Spatter cleaning 1 (1).pdf",
+        "QCI -F-05-07 Check list for Spatter cleaning 1 (2).pdf",
+        "QCI -F-05-07 Check list for Spatter cleaning 1.pdf"
+      ]
+    },
+    {
+      "docCode": "QCI/F/05/08 Rev.02",
+      "stage": "Leak Test Report - Legacy",
+      "tab": "Legacy leak-test report",
+      "found": true,
+      "matchingPdfs": [
+        "QCI -F-05-08  Radiator Leak Test Report 1 (1).pdf",
+        "QCI -F-05-08  Radiator Leak Test Report 1.pdf"
+      ]
+    },
+    {
+      "docCode": "QCI/F/05/09 Rev.06",
+      "stage": "Leak Inspection - Legacy",
+      "tab": "Legacy release checklist",
+      "found": true,
+      "matchingPdfs": [
+        "QCI -F-05-09 Check list for leak testing 1.pdf",
+        "QCI-F-05-10 VISUAL ASSESMENT ON EDGES QCI-F-09-05-A 1.pdf"
+      ]
+    },
+    {
+      "docCode": "QCI/F/09/08 Rev.01",
+      "stage": "Daily FPY - Leak Testing",
+      "tab": "Daily FPY record",
+      "found": true,
+      "matchingPdfs": [
+        "QCI F 0908 LEAK TESTING -FPY 1.pdf"
+      ]
+    },
+    {
+      "docCode": "QCI/F/05/09",
+      "stage": "Daily FPY - Leak Testing",
+      "tab": "Daily FPY record",
+      "found": true,
+      "matchingPdfs": [
+        "QCI -F-05-09 Check list for leak testing 1.pdf",
+        "QCI-F-05-10 VISUAL ASSESMENT ON EDGES QCI-F-09-05-A 1.pdf"
+      ]
+    },
+    {
+      "docCode": "QCI/F/05/10 Rev.01",
+      "stage": "Edge Visual Assessment",
+      "tab": "Special visual report",
+      "found": true,
+      "matchingPdfs": [
+        "QCI-F-05-10 VISUAL ASSESMENT ON EDGES QCI-F-09-05-A 1.pdf"
+      ]
+    },
+    {
+      "docCode": "QCI/F/05/12 Rev.01",
+      "stage": "Dimensional Test Report",
+      "tab": "Formal dimensional report",
+      "found": true,
+      "matchingPdfs": [
+        "QCI -F-05-07 Check list for Spatter cleaning 1 (2).pdf",
+        "QCI-F-05-06 check point in co2 dept 1 (2).pdf",
+        "QCI-F-05-12 DIMNSN TST 1.pdf"
+      ]
+    },
+    {
+      "docCode": "QCI/F/05/13 Rev.01",
+      "stage": "Pressure Test Report",
+      "tab": "Pressure-test certificate",
+      "found": true,
+      "matchingPdfs": [
+        "QCI-F-05-13 LEAK TEST-PRESSURE TEST 1.pdf"
+      ]
+    },
+    {
+      "docCode": "QCI/F/05/14 Rev.01",
+      "stage": "Dye Penetration Test Report",
+      "tab": "NDT report",
+      "found": true,
+      "matchingPdfs": [
+        "QCI-F-05-14 DP TEST format 1.pdf"
+      ]
+    },
+    {
+      "docCode": "QCI/F/01/02 Rev.01",
+      "stage": "01 Material Incoming",
+      "tab": "Incoming material inspection record",
+      "found": false,
+      "matchingPdfs": []
+    },
+    {
+      "docCode": "QCI/F/06/01 Rev.03",
+      "stage": "02 Blasting Checklist",
+      "tab": "Blasting process checklist",
+      "found": true,
+      "matchingPdfs": [
+        "DOC. NO. QCI F 06 01 Rev. 03 dt. 27.02.2022 CHECK LIST FOR BLASTING.pdf"
+      ]
+    },
+    {
+      "docCode": "QCI/F/06/03 Rev.01",
+      "stage": "03 Dust Assessment",
+      "tab": "Dust assessment",
+      "found": true,
+      "matchingPdfs": [
+        "DOC. NO. QCI F 06 01 Rev. 03 dt. 27.02.2022 CHECK LIST FOR BLASTING.pdf"
+      ]
+    },
+    {
+      "docCode": "QCI/F/06/04 Rev.11",
+      "stage": "04 Corrosion Protection",
+      "tab": "Corrosion protection record",
+      "found": false,
+      "matchingPdfs": []
+    },
+    {
+      "docCode": "QCI/F/06/02 Rev.02",
+      "stage": "05 Humidity Report",
+      "tab": "Humidity and dew-point monitoring",
+      "found": true,
+      "matchingPdfs": [
+        "DOC. NO. QCI F 06 01 Rev. 03 dt. 27.02.2022 CHECK LIST FOR BLASTING.pdf"
+      ]
+    },
+    {
+      "docCode": "QCI/F/06/11 Rev.01",
+      "stage": "06 Internal Cleaning pH",
+      "tab": "Surklin 521 control",
+      "found": false,
+      "matchingPdfs": []
+    },
+    {
+      "docCode": "QCI/F/06/06 Rev.01",
+      "stage": "07 Peel Off Test",
+      "tab": "Peel-off test",
+      "found": true,
+      "matchingPdfs": [
+        "DOC. NO. QCI F 06 01 Rev. 03 dt. 27.02.2022 CHECK LIST FOR BLASTING.pdf",
+        "QCI-F-06-10 ENDOSCOPIC  CHECKSHEET.pdf",
+        "QCI-F-06-12-CHECKSHEET FOR INTERNAL CLEANING & COATING.pdf",
+        "QCI-F-06-13 Final Inspection & Packing Checksheet ( Internal Cleaning & Coating Dept.).pdf"
+      ]
+    },
+    {
+      "docCode": "QCI/F/06/08 Rev.01",
+      "stage": "09 Final Paint Inspection",
+      "tab": "Final paint inspection",
+      "found": false,
+      "matchingPdfs": []
+    },
+    {
+      "docCode": "PRO/F/02/14 Rev.00",
+      "stage": "10 Paint Kitchen",
+      "tab": "Paint-kitchen traceability",
+      "found": false,
+      "matchingPdfs": []
+    },
+    {
+      "docCode": "QCI/F/06/15 Rev.00",
+      "stage": "11 Paint Wastage",
+      "tab": "Paint-wastage record",
+      "found": false,
+      "matchingPdfs": []
+    },
+    {
+      "docCode": "QCI/F/03/01 Rev.10",
+      "stage": "12 Final Product Inspection",
+      "tab": "Final product inspection",
+      "found": false,
+      "matchingPdfs": []
+    },
+    {
+      "docCode": "QCI/F/07/01 Rev.10",
+      "stage": "13 Packing Checksheet",
+      "tab": "Packing inspection",
+      "found": true,
+      "matchingPdfs": [
+        "QCI-F-07-01 CHECK POINT IN PACKING.pdf"
+      ]
+    },
+    {
+      "docCode": "QCI/F/07/03 Rev.01",
+      "stage": "14 Dispatch Checklist",
+      "tab": "Dispatch-document gate",
+      "found": false,
+      "matchingPdfs": []
+    },
+    {
+      "docCode": "QCI/F/07/02 Rev.02",
+      "stage": "15 Container Loading",
+      "tab": "Container-loading inspection",
+      "found": true,
+      "matchingPdfs": [
+        "QCI-F-07-02 CHECK POINTS IN CONTAINER LOADING.pdf"
+      ]
+    }
+  ],
+  "allPdfs": [
+    "01-03 Inspection of Paint, Thinner, Flushing Solvent, Transform.pdf",
+    "DOC ID  QCI F 10 05 PRE-TREATMENT & POST TREATMENT CHEMICAL TEST REPORT.pdf",
+    "DOC ID  QCI F 10 06 TEST CERTIFICATE FOR HOT DIP GALVANIZED TYPE TEST.pdf",
+    "DOC NO. QCI F 10 01. Rev.No. 003. Date 08.10.2023.Check list Before Galvanizing.pdf",
+    "DOC NO. QCI F 10 02. Rev.No.005 Date 19.08.2025. PRE-TREATMENT  CHECK SHEET.pdf",
+    "DOC NO. QCI F 10 03   REV. 03 DT.  30.03.2026. GALVANIZING CHECK SHEET.pdf",
+    "DOC NO. QCI F 10 04 FINAL JOB INSPECTION REPORT  (GALVANIZING).pdf",
+    "DOC. NO. QCI F 06 01 Rev. 03 dt. 27.02.2022 CHECK LIST FOR BLASTING.pdf",
+    "Incoming Quality plan 1.pdf",
+    "Inprocss Quality plan 1 (1).pdf",
+    "LEAK TESTING -FPY 1.pdf",
+    "QCI -F-02- 01 ROLLING CHECK LIST 1 (1).pdf",
+    "QCI -F-02- 01 ROLLING CHECK LIST 1.pdf",
+    "QCI -F-02- 01 ROLLING CHECK LISTn 1 (1).pdf",
+    "QCI -F-02- 01 ROLLING CHECK LISTn 1.pdf",
+    "QCI -F-02- 02 REGISTANCE SPOT WELDINGCheck list (1) 1.pdf",
+    "QCI -F-02- 03  EDGE CUTTING QCI 1.pdf",
+    "QCI -F-02- 04 check list- TIG WELDING 1.pdf",
+    "QCI -F-02- 05 Individual fin testing 1.pdf",
+    "QCI -F-05-05 Check list for Assembly Guage 1.pdf",
+    "QCI -F-05-07 Check list for Spatter cleaning 1 (1).pdf",
+    "QCI -F-05-07 Check list for Spatter cleaning 1 (2).pdf",
+    "QCI -F-05-07 Check list for Spatter cleaning 1.pdf",
+    "QCI -F-05-08  Radiator Leak Test Report 1 (1).pdf",
+    "QCI -F-05-08  Radiator Leak Test Report 1.pdf",
+    "QCI -F-05-09 Check list for leak testing 1.pdf",
+    "QCI F 0905 ROLLING -FPY 1.pdf",
+    "QCI F 0907 ERRECTION -FPY 1.pdf",
+    "QCI F 0908 LEAK TESTING -FPY 1.pdf",
+    "QCI S 10 01 Titration for Alkaline base Degreasing.pdf",
+    "QCI S 10 02 Degreasing Water rinsing parameter.pdf",
+    "QCI S 10 03 Titration for Acid of Pickling.pdf",
+    "QCI S 10 04 Titration for Iron of Acid Pickling.pdf",
+    "QCI S 10 05 Acid water rinsing paramater.pdf",
+    "QCI S 10 06 Titration for Iron content in  Flux  Tank.pdf",
+    "QCI S 10 07 Titration for Passivation.pdf",
+    "QCI S 10 08 HAMMER TEST.pdf",
+    "QCI S 10 09 Elcometer Test.pdf",
+    "QCI S 10 10 Precee Test.pdf",
+    "QCI S 10 11 Mass of Zinc.pdf",
+    "QCI-06-07 INTERNAL OILING FLUSHING CHECKSHEET.pdf",
+    "QCI-F-05-03 - CHECK POINTS IN ERRECTION 1 (1).pdf",
+    "QCI-F-05-03 - CHECK POINTS IN ERRECTION 1.pdf",
+    "QCI-F-05-06 check point in co2 dept 1 (1).pdf",
+    "QCI-F-05-06 check point in co2 dept 1 (2).pdf",
+    "QCI-F-05-06 check point in co2 dept 1.pdf",
+    "QCI-F-05-10 VISUAL ASSESMENT ON EDGES QCI-F-09-05-A 1.pdf",
+    "QCI-F-05-12 DIMNSN TST 1.pdf",
+    "QCI-F-05-13 LEAK TEST-PRESSURE TEST 1.pdf",
+    "QCI-F-05-14 DP TEST format 1.pdf",
+    "QCI-F-06-10 ENDOSCOPIC  CHECKSHEET.pdf",
+    "QCI-F-06-12-CHECKSHEET FOR INTERNAL CLEANING & COATING.pdf",
+    "QCI-F-06-13 Final Inspection & Packing Checksheet ( Internal Cleaning & Coating Dept.).pdf",
+    "QCI-F-07-01 CHECK POINT IN PACKING.pdf",
+    "QCI-F-07-02 CHECK POINTS IN CONTAINER LOADING.pdf",
+    "QCI-S-03-06-Application of Loctite-565  PTFE Teflon Tape on Transformer Radiators Air Vent  Oil Drain Plug Threads.pdf",
+    "QCI-S-06-01-SWEEP BLASTING ON HDG RADIATORS.pdf",
+    "QCI-S-06-02-SOLUBLE SALT TEST.pdf",
+    "QCI-S-06-03-FLOW COATING OF RADIATORS.pdf",
+    "QCI-S-06-04-INSPECTION OF RADIATORS BEFORE FINAL PAINTING.pdf",
+    "QCI-S-06-05-HOW TO USE ENDOSCOPE CAMERA TO CHECK INTERNAL COATING.pdf",
+    "QCI-S-06-06- MEASURING DRY FILM RADIATOR SURFACE.pdf",
+    "QCI-S-06-07-ADHESION TEST.pdf",
+    "QCI-S-06-08-PULL OFF TESTER.pdf",
+    "QCI-S-06-09-SURFACE CLEANING TESTING BY DUST TAPE KIT AFTER BLASTING.pdf",
+    "QCI-S-06-10-TEMPRETURE VS VISCOCITY.pdf",
+    "QCI-S-06-11-ONLY PAINTED BLASTING WITH MS GRIT G-58 IRON GRIT.pdf",
+    "QCI-S-06-12-CLIMATE CONDION MEASUREMANT IN BLASTING & PAINTSHOP.pdf",
+    "QCI-S-06-13-PRE-HEATING OF THE GALVANIZED RADIATORS.pdf",
+    "QCI-S-06-14-INTERNAL COATING OF RADIATORS WITH RD 124.pdf",
+    "QCI-S-06-15-HOT AIR BLOW INSIDE THE RADIATOR TO REMOVE ALL RD 124 PAINT SOLVENT FUMES INSIDE THE RADIATOR.pdf",
+    "QCI-S-06-17-AFTER BLASTING RADIATORS PREPAIR FOR PAINTING.pdf",
+    "QCI-S-06-18-PRIMER & PU TOP COAT MIXING IN PAINT KITCHEN.pdf",
+    "QCI-S-06-19-WATER BASE PRIMER & TOP COAT MIXING IN PAINT KITCHE.pdf",
+    "QCI-S-06-20-VISCOSITY MEASURMENT.pdf",
+    "QCI-S-06-21-INSIDE RADIATOR CLENING PROCESS WITH SOLVENT.pdf",
+    "QCI-S-06-22-DRAIN THE SOLVENT & AIR PURGE INSIDE RADIATOR.pdf",
+    "QCI-S-06-23-INSIDE RADIATOR PROCESS WITH RD 124 PAINT.pdf",
+    "QCI-S-06-24-INSIDE HEDAR PIPE & FLANGE COATING AND  FINAL TOUCH.pdf",
+    "QCI-S-06-25-CHECK INTERNAL CLEANILESS OF INSIDE THE PIPE BY USING TRANSFORM.pdf",
+    "QCI-S-06-26-FLOW COATING OF RADIATORS CHING PAINT.pdf",
+    "QCI-S-06-27-INSIDE HEDAR PIPE & FLANGE COATING AND  FINAL TOUCH.pdf",
+    "QCI-S-06-28-INSIDE RADIATOR COATING WITH IS 741 PAINT.pdf",
+    "QCI-S-06-30-AUTOMATIC FLOW COATING RADIATORS.pdf",
+    "QCI-S-06-31-INTERNAL CLEANING PROCESS OF RADIATORS WITH SOLVENT.pdf",
+    "QCI-S-06-32-INTERNAL COATING PROCESS DONE BY FILLING THE RAIDIA.pdf",
+    "QCI-S-06-33-INSIDE PIPE & FLANG COATING APPLICATION & FINAL TOU.pdf",
+    "QCI-S-06-34-OIL DRAINING AND HIGH VELOCITY AIR PURGING TO REMOV.pdf",
+    "QCI-S-06-35-BLASTING PROFILE EXAMINATION AS PER THE STD. D-4417.pdf",
+    "QCI.S.03.01 - SOP - INSPECTION OF RADIATORS IN FINAL PRODUCT AREA BEFORE DISPATCH (FABRICATION & PAINTING CHECK POINT).pdf",
+    "QCI.S.03.02 - SOP - DFT MEASUREMENTS ON RADIATOR FINS.pdf",
+    "QCI.S.03.03 - SOP - LOW VOLTAGE HOLIDAY TESTING.pdf",
+    "QCI.S.03.05 - SOP - FLUTE DIMENSION INSPECTION.pdf",
+    "QCI.S.07.01 - SOP - PACKING INSPECTION.pdf",
+    "QCI.S.07.02 - SOP - INSPECTION OF RADIATOR BASE DURING CONTAINER LOADING.pdf",
+    "QCI.S.07.03 - SOP - STORAGE OF RADIATOR AT CUSTOMER END.pdf"
+  ]
+}

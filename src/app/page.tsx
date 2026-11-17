@@ -2838,10 +2838,6 @@ function InspectionForm({ stages, workOrders, user, prefillStageCode, onSubmitte
     fetch("/api/users").then(r => r.json()).then(d => {
       const users = (d.users || []).filter((u: any) => u.status === "Active");
       setAvailableUsers(users);
-      if (!operator && users.some((u: any) => u.role === "Operator")) {
-        const firstOp = users.find((u: any) => u.role === "Operator");
-        if (firstOp) setOperator(firstOp.name);
-      }
     }).catch(() => {
       setAvailableUsers([
         { name: "Ravi Kamble", role: "Operator", username: "ravi.kamble" },
@@ -2855,6 +2851,63 @@ function InspectionForm({ stages, workOrders, user, prefillStageCode, onSubmitte
       ]);
     });
   }, []);
+
+  // Smart crew auto-selection resolving Operator -> Checked By -> Approved By through hierarchy
+  const autoSelectCrewFromHierarchy = useCallback((currentStage?: any) => {
+    if (availableUsers.length === 0) return;
+    const effectiveStage = currentStage || stage;
+    const stageCode = effectiveStage?.stageCode;
+
+    // 1. Determine Operator (Tier 3)
+    let selectedOp = operator;
+    if (user.role === "Operator") {
+      selectedOp = user.name;
+    } else {
+      const matchingOp = availableUsers.find((u: any) => u.role === "Operator" && stageCode && (u.assignedStages || []).includes(stageCode));
+      const fallbackOp = matchingOp || availableUsers.find((u: any) => u.role === "Operator") || availableUsers[0];
+      if (fallbackOp) selectedOp = fallbackOp.name;
+    }
+    setOperator(selectedOp);
+
+    // 2. Determine Checked By (Tier 2 Quality Checker)
+    let selectedChecker = checkedBy;
+    if (user.role === "QCInspector" || user.role === "ProcessEngineer") {
+      selectedChecker = user.name;
+    } else {
+      const opUser = availableUsers.find((u: any) => u.name === selectedOp);
+      const opMgr = opUser?.managerId ? availableUsers.find((u: any) => u.id === opUser.managerId) : null;
+      if (opMgr && ["QCInspector", "ProductionSupervisor", "LineManager", "QualityManager"].includes(opMgr.role)) {
+        selectedChecker = opMgr.name;
+      } else {
+        const stageQc = availableUsers.find((u: any) => u.role === "QCInspector" && stageCode && (u.assignedStages || []).includes(stageCode));
+        const fallbackQc = stageQc || availableUsers.find((u: any) => u.role === "QCInspector") || availableUsers.find((u: any) => u.role === "ProductionSupervisor");
+        if (fallbackQc) selectedChecker = fallbackQc.name;
+      }
+    }
+    setCheckedBy(selectedChecker);
+
+    // 3. Determine Approved By (Tier 1 Releasing Approver)
+    let selectedApprover = approvedBy;
+    if (["QualityManager", "PlantManager", "Director", "DGM", "Admin"].includes(user.role)) {
+      selectedApprover = user.name;
+    } else {
+      const checkerUser = availableUsers.find((u: any) => u.name === selectedChecker);
+      const checkerMgr = checkerUser?.managerId ? availableUsers.find((u: any) => u.id === checkerUser.managerId) : null;
+      if (checkerMgr && ["QualityManager", "PlantManager", "Director", "DGM", "Admin"].includes(checkerMgr.role)) {
+        selectedApprover = checkerMgr.name;
+      } else {
+        const qm = availableUsers.find((u: any) => u.role === "QualityManager") || availableUsers.find((u: any) => u.role === "PlantManager") || availableUsers.find((u: any) => u.role === "DGM");
+        if (qm) selectedApprover = qm.name;
+      }
+    }
+    setApprovedBy(selectedApprover);
+  }, [availableUsers, stage, user, operator, checkedBy, approvedBy]);
+
+  useEffect(() => {
+    if (availableUsers.length > 0) {
+      autoSelectCrewFromHierarchy(stage);
+    }
+  }, [availableUsers, stage]);
 
   // Filter stages by user's assigned stages
   const visibleStages = useMemo(() => {
@@ -3249,6 +3302,39 @@ function InspectionForm({ stages, workOrders, user, prefillStageCode, onSubmitte
                   </span>
                 </div>
 
+                {/* Visual Reporting Hierarchy Card */}
+                <div className="rounded-lg p-2.5 space-y-1.5" style={{ backgroundColor: "rgba(8, 50, 96, 0.04)", border: "1px solid rgba(8, 50, 96, 0.12)" }}>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-1.5 text-[11px] font-semibold" style={{ color: "var(--primary)" }}>
+                      <Workflow size={12} />
+                      <span>4-TIER SIGN-OFF HIERARCHY (AUTO-ALLOCATED)</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => autoSelectCrewFromHierarchy(stage)}
+                      className="text-[10.5px] hover:underline flex items-center gap-1 font-medium"
+                      style={{ color: "var(--primary)" }}
+                      title="Re-run hierarchy resolution"
+                    >
+                      <RefreshCw size={10} /> Auto-Sync Crew
+                    </button>
+                  </div>
+                  <div className="grid grid-cols-3 gap-2 text-[11px]">
+                    <div className="p-1.5 rounded" style={{ backgroundColor: "var(--surface-card)", border: "1px solid var(--hairline-soft)" }}>
+                      <div className="text-[9px] uppercase font-mono" style={{ color: "var(--muted)" }}>Tier 3 · Operator</div>
+                      <div className="font-semibold truncate" style={{ color: "var(--ink)" }}>{operator || "Unassigned"}</div>
+                    </div>
+                    <div className="p-1.5 rounded" style={{ backgroundColor: "var(--surface-card)", border: "1px solid var(--hairline-soft)" }}>
+                      <div className="text-[9px] uppercase font-mono" style={{ color: "var(--muted)" }}>Tier 2 · Checker</div>
+                      <div className="font-semibold truncate" style={{ color: "var(--ink)" }}>{checkedBy || "Unassigned"}</div>
+                    </div>
+                    <div className="p-1.5 rounded" style={{ backgroundColor: "var(--surface-card)", border: "1px solid var(--hairline-soft)" }}>
+                      <div className="text-[9px] uppercase font-mono" style={{ color: "var(--muted)" }}>Tier 1 · Approver</div>
+                      <div className="font-semibold truncate" style={{ color: "var(--ink)" }}>{approvedBy || "Unassigned"}</div>
+                    </div>
+                  </div>
+                </div>
+
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 pt-1">
                   {/* 1. Line Operator */}
                   <div>
@@ -3528,12 +3614,14 @@ function InspectionForm({ stages, workOrders, user, prefillStageCode, onSubmitte
                   type="button"
                   variant="outline"
                   onClick={handlePassAllNominal}
-                  data-tooltip="Quick-populate all characteristics with nominal in-tolerance values"
+                  data-tooltip="Smart Auto-Fill: Populates all engineering specifications with nominal in-tolerance criteria"
                   data-tooltip-pos="left"
-                  className="t-body-sm h-8 px-3 rounded-lg flex items-center gap-1.5"
-                  style={{ borderColor: "var(--hairline)", backgroundColor: "var(--surface-card)" }}
+                  className="t-body-sm h-8 px-3 rounded-lg flex items-center gap-1.5 font-medium shadow-sm hover:border-[var(--primary)]"
+                  style={{ borderColor: "var(--hairline)", backgroundColor: "var(--surface-card)", color: "var(--ink)" }}
                 >
-                  <CheckCircle2 size={13} style={{ color: "#4a7c5e" }} /> Pass All Nominal
+                  <Zap size={13} style={{ color: "#d97706" }} />
+                  <CheckCircle2 size={13} style={{ color: "#4a7c5e" }} />
+                  <span>Auto-Fill Nominal Specs (Engineering Standards)</span>
                 </Button>
               )}
             </div>
@@ -6035,6 +6123,7 @@ function UserManagementModule({ plant, currentUser }: { plant: string; currentUs
   const [showCreate, setShowCreate] = useState(false);
   const [roleFilter, setRoleFilter] = useState("all");
   const [search, setSearch] = useState("");
+  const [viewMode, setViewMode] = useState<"directory" | "hierarchy">("directory");
 
   const load = useCallback(() => {
     setLoading(true);
@@ -6082,12 +6171,31 @@ function UserManagementModule({ plant, currentUser }: { plant: string; currentUs
       <div>
         <span className="t-label px-2 py-0.5 rounded-full inline-block" style={{ backgroundColor: "var(--surface-strong)", color: "var(--ink)" }}>{ROLE_LABELS[u.role] || u.role}</span>
         <div className="t-label text-[10px] mt-0.5 font-mono" style={{ color: "var(--primary)" }}>
-          {["Admin", "QualityManager", "PlantManager", "LineManager"].includes(u.role) ? "Tier 1: Releasing Approver" :
+          {["Admin", "Director", "DGM", "QualityManager", "PlantManager", "LineManager"].includes(u.role) ? "Tier 1: Releasing Approver" :
            ["QCInspector", "ProcessEngineer", "AssistantManager"].includes(u.role) ? "Tier 2: Quality Checker" :
            ["Operator", "ProductionSupervisor"].includes(u.role) ? "Tier 3: Line Operator" : "Governance Staff"}
         </div>
       </div>
     ), mobileLabel: "Role" },
+    { key: "manager", header: "Reports To (Supervisor)", render: (u) => {
+      const mgr = users.find((m: any) => m.id === u.managerId);
+      if (!mgr) return <span className="t-label" style={{ color: "var(--muted-soft)" }}>Head of Org / None</span>;
+      return (
+        <div>
+          <div className="t-body-sm font-medium" style={{ color: "var(--ink)" }}>{mgr.name}</div>
+          <span className="t-label text-[10px] px-1.5 py-0.2 rounded" style={{ backgroundColor: "rgba(8, 50, 96, 0.08)", color: "var(--primary)" }}>{ROLE_LABELS[mgr.role] || mgr.role}</span>
+        </div>
+      );
+    }, hideOnMobile: true },
+    { key: "subordinates", header: "Direct Subordinates", render: (u) => {
+      const subs = users.filter((sub: any) => sub.managerId === u.id);
+      if (subs.length === 0) return <span className="t-label" style={{ color: "var(--muted-soft)" }}>-</span>;
+      return (
+        <span className="t-label px-2 py-0.5 rounded-full font-mono text-[10px]" style={{ backgroundColor: "rgba(74, 124, 94, 0.12)", color: "#4a7c5e" }}>
+          {subs.length} direct report{subs.length > 1 ? "s" : ""}
+        </span>
+      );
+    }, hideOnMobile: true },
     { key: "department", header: "Department", render: (u) => <span className="t-body-sm">{u.department || "-"}</span>, hideOnMobile: true },
     { key: "plant", header: "Plant", render: (u) => <span className="t-code">{u.plant}</span>, hideOnMobile: true },
     { key: "shift", header: "Shift", render: (u) => <span className="t-code">{u.shiftPreference || "-"}</span>, hideOnMobile: true },
@@ -6104,13 +6212,18 @@ function UserManagementModule({ plant, currentUser }: { plant: string; currentUs
     { key: "status", header: "Status", sortable: true, sortValue: (u) => u.status, render: (u) => <StatusBadge status={u.status} size="xs" />, mobileLabel: "Status" },
   ];
 
+  // Group users into 3 hierarchy tiers
+  const tier1Users = useMemo(() => filtered.filter(u => ["Director", "DGM", "PlantManager", "QualityManager", "Admin", "LineManager"].includes(u.role)), [filtered]);
+  const tier2Users = useMemo(() => filtered.filter(u => ["QCInspector", "ProcessEngineer", "AssistantManager"].includes(u.role)), [filtered]);
+  const tier3Users = useMemo(() => filtered.filter(u => !["Director", "DGM", "PlantManager", "QualityManager", "Admin", "LineManager", "QCInspector", "ProcessEngineer", "AssistantManager"].includes(u.role)), [filtered]);
+
   return (
     <div className="reveal-up">
       <PageHeader
-        eyebrow="Administration"
-        title="User Management"
-        subtitle="Create users, assign roles and stage permissions, suspend or activate accounts."
-        info="Create and manage user accounts here. Each user is assigned a role that controls which modules they can access, and optionally a set of process stages they are responsible for inspecting or managing."
+        eyebrow="Personnel Governance & Allocation"
+        title="User Management & Reporting Hierarchy"
+        subtitle="Organize shopfloor personnel, allocate supervisor-subordinate reporting structures, and control 4-tier inspection sign-off authority."
+        info="Manage user accounts and approval hierarchies here. Every shopfloor operator reports to a direct checker (Tier 2), who in turn reports to an authorized releasing manager (Tier 1) for full compliance with ISO 9001:2015 Clause 5.3."
         action={currentUser.role === "Admin" && (
           <Button onClick={() => setShowCreate(true)} className="t-button h-9 px-4 rounded-lg flex items-center gap-1.5" style={{ backgroundColor: "var(--primary)", color: "var(--on-primary)" }}>
             <UserPlus size={14} /> New User
@@ -6118,6 +6231,23 @@ function UserManagementModule({ plant, currentUser }: { plant: string; currentUs
         )}
       />
       <FilterBar count={filtered.length}>
+        <div className="flex items-center gap-1.5 p-1 rounded-lg" style={{ backgroundColor: "var(--canvas-soft)", border: "1px solid var(--hairline)" }}>
+          <button
+            type="button"
+            onClick={() => setViewMode("directory")}
+            className={`t-label px-3 py-1.5 rounded-md flex items-center gap-1.5 transition-all ${viewMode === "directory" ? "bg-[var(--primary)] text-[var(--on-primary)] font-semibold shadow-sm" : "text-[var(--muted)] hover:text-[var(--ink)]"}`}
+          >
+            <Users size={12} /> Directory Table
+          </button>
+          <button
+            type="button"
+            onClick={() => setViewMode("hierarchy")}
+            className={`t-label px-3 py-1.5 rounded-md flex items-center gap-1.5 transition-all ${viewMode === "hierarchy" ? "bg-[var(--primary)] text-[var(--on-primary)] font-semibold shadow-sm" : "text-[var(--muted)] hover:text-[var(--ink)]"}`}
+          >
+            <Workflow size={12} /> Org Chart & Reporting Flow
+          </button>
+        </div>
+
         <Filter size={13} style={{ color: "var(--muted)" }} />
         <Select value={roleFilter} onValueChange={setRoleFilter}>
           <SelectTrigger className="w-40 h-8 t-body-sm" style={{ borderColor: "var(--hairline)" }}><SelectValue /></SelectTrigger>
@@ -6128,61 +6258,266 @@ function UserManagementModule({ plant, currentUser }: { plant: string; currentUs
         </Select>
         <SearchInput value={search} onChange={setSearch} placeholder="Search by name, username, email…" className="w-64" />
       </FilterBar>
+
       <div className="p-4 md:p-8">
-        {loading ? <LoadingBlock label="Loading users…" /> : (
-          <div className="rounded-xl overflow-hidden" style={{ border: "1px solid var(--hairline)", backgroundColor: "var(--surface-card)" }}>
-            <DataTable
-              columns={columns}
-              data={filtered}
-              onRowClick={(u) => canEdit(u) && setSelected(u)}
-              emptyMessage="No users found."
-              mobileCardRender={(u) => (
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <div className="t-body-sm font-medium" style={{ color: "var(--ink)" }}>{u.name}</div>
-                      <div className="t-label" style={{ color: "var(--muted)" }}>@{u.username}</div>
+        {loading ? <LoadingBlock label="Loading user directory and org charts…" /> : (
+          viewMode === "directory" ? (
+            <div className="rounded-xl overflow-hidden" style={{ border: "1px solid var(--hairline)", backgroundColor: "var(--surface-card)" }}>
+              <DataTable
+                columns={columns}
+                data={filtered}
+                onRowClick={(u) => canEdit(u) && setSelected(u)}
+                emptyMessage="No users found."
+                mobileCardRender={(u) => (
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <div className="t-body-sm font-medium" style={{ color: "var(--ink)" }}>{u.name}</div>
+                        <div className="t-label" style={{ color: "var(--muted)" }}>@{u.username}</div>
+                      </div>
+                      <StatusBadge status={u.status} size="xs" />
                     </div>
-                    <StatusBadge status={u.status} size="xs" />
-                  </div>
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="t-label px-2 py-0.5 rounded-full" style={{ backgroundColor: "var(--surface-strong)", color: "var(--ink)" }}>{u.role}</span>
-                    {u.department && <span className="t-label" style={{ color: "var(--muted)" }}>{u.department}</span>}
-                  </div>
-                  {(u.assignedStages || []).length > 0 && (
-                    <div className="flex flex-wrap gap-1">
-                      {u.assignedStages.map((s: string) => (
-                        <span key={s} className="t-code px-1.5 py-0.5 rounded" style={{ backgroundColor: "var(--canvas-soft)", color: "var(--primary)", fontSize: 10 }}>{s}</span>
-                      ))}
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="t-label px-2 py-0.5 rounded-full" style={{ backgroundColor: "var(--surface-strong)", color: "var(--ink)" }}>{u.role}</span>
+                      {u.department && <span className="t-label" style={{ color: "var(--muted)" }}>{u.department}</span>}
                     </div>
-                  )}
+                    {u.managerId && (
+                      <div className="t-label text-[11px]" style={{ color: "var(--muted)" }}>
+                        Reports to: <strong style={{ color: "var(--ink)" }}>{users.find((m: any) => m.id === u.managerId)?.name || "Supervisor"}</strong>
+                      </div>
+                    )}
+                    {(u.assignedStages || []).length > 0 && (
+                      <div className="flex flex-wrap gap-1">
+                        {u.assignedStages.map((s: string) => (
+                          <span key={s} className="t-code px-1.5 py-0.5 rounded" style={{ backgroundColor: "var(--canvas-soft)", color: "var(--primary)", fontSize: 10 }}>{s}</span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+              />
+            </div>
+          ) : (
+            /* Multi-tier Org Flowchart View */
+            <div className="space-y-8">
+              {/* Hierarchy explanation banner */}
+              <div className="rounded-xl p-5 flex items-start gap-4" style={{ backgroundColor: "var(--canvas-soft)", border: "1px solid var(--hairline)" }}>
+                <Workflow size={22} className="shrink-0 mt-0.5" style={{ color: "var(--primary)" }} />
+                <div className="space-y-1">
+                  <div className="t-title-sm" style={{ color: "var(--ink)" }}>Inspection Sign-Off Hierarchy & Supervision Flow</div>
+                  <div className="t-body-sm" style={{ color: "var(--body)" }}>
+                    Every digital inspection auto-traverses this structure: an <strong>Operator (Tier 3)</strong> submits shopfloor measurements, their <strong>Assigned Supervisor / QC Inspector (Tier 2)</strong> checks and verifies tolerances, and the <strong>Quality / Plant Head (Tier 1)</strong> conducts final releasing sign-off.
+                  </div>
                 </div>
-              )}
-            />
-          </div>
+              </div>
+
+              {/* Tier 1 Section */}
+              <div className="space-y-3">
+                <div className="flex items-center justify-between pb-2 border-b" style={{ borderColor: "var(--hairline)" }}>
+                  <div className="flex items-center gap-2">
+                    <span className="w-6 h-6 rounded-md flex items-center justify-center text-xs font-bold" style={{ backgroundColor: "var(--primary)", color: "var(--on-primary)" }}>1</span>
+                    <div>
+                      <h3 className="t-title-sm" style={{ color: "var(--ink)" }}>Tier 1: Senior Executive & Releasing Authority</h3>
+                      <p className="t-label text-[11px]" style={{ color: "var(--muted)" }}>Final dossier approval, stage release authorization, and disposition sign-off ({tier1Users.length} members)</p>
+                    </div>
+                  </div>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5">
+                  {tier1Users.map((u) => {
+                    const subs = users.filter((s: any) => s.managerId === u.id);
+                    const mgr = users.find((m: any) => m.id === u.managerId);
+                    return (
+                      <div
+                        key={u.id}
+                        onClick={() => canEdit(u) && setSelected(u)}
+                        className={`rounded-xl p-4 transition-all ${canEdit(u) ? "cursor-pointer hover:shadow-md hover:border-[var(--primary)]" : ""}`}
+                        style={{ backgroundColor: "var(--surface-card)", border: "1px solid var(--hairline)" }}
+                      >
+                        <div className="flex items-start justify-between gap-2 mb-2">
+                          <div className="flex items-center gap-2.5">
+                            <div className="w-9 h-9 rounded-full flex items-center justify-center font-bold text-xs" style={{ backgroundColor: "rgba(8, 50, 96, 0.1)", color: "var(--primary)" }}>
+                              {u.name.split(" ").map((n: string) => n[0]).join("").slice(0, 2)}
+                            </div>
+                            <div>
+                              <div className="t-body-sm font-semibold" style={{ color: "var(--ink)" }}>{u.name}</div>
+                              <div className="t-label text-[11px]" style={{ color: "var(--muted)" }}>@{u.username}</div>
+                            </div>
+                          </div>
+                          <StatusBadge status={u.status} size="xs" />
+                        </div>
+                        <div className="space-y-1.5 pt-2 border-t text-xs" style={{ borderColor: "var(--hairline-soft)" }}>
+                          <div className="flex items-center justify-between">
+                            <span className="t-label" style={{ color: "var(--muted)" }}>Role:</span>
+                            <span className="t-label px-2 py-0.5 rounded font-medium" style={{ backgroundColor: "var(--surface-strong)", color: "var(--ink)" }}>{ROLE_LABELS[u.role] || u.role}</span>
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <span className="t-label" style={{ color: "var(--muted)" }}>Department:</span>
+                            <span style={{ color: "var(--body)" }}>{u.department || "-"} · Plant {u.plant}</span>
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <span className="t-label" style={{ color: "var(--muted)" }}>Reports To:</span>
+                            <span className="font-medium" style={{ color: mgr ? "var(--primary)" : "var(--muted-soft)" }}>{mgr ? mgr.name : "Board / Director"}</span>
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <span className="t-label" style={{ color: "var(--muted)" }}>Oversees:</span>
+                            <span className="t-code font-semibold" style={{ color: subs.length > 0 ? "#4a7c5e" : "var(--muted-soft)" }}>{subs.length} direct report{subs.length !== 1 ? "s" : ""}</span>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Tier 2 Section */}
+              <div className="space-y-3">
+                <div className="flex items-center justify-between pb-2 border-b" style={{ borderColor: "var(--hairline)" }}>
+                  <div className="flex items-center gap-2">
+                    <span className="w-6 h-6 rounded-md flex items-center justify-center text-xs font-bold" style={{ backgroundColor: "#0284c7", color: "#fff" }}>2</span>
+                    <div>
+                      <h3 className="t-title-sm" style={{ color: "var(--ink)" }}>Tier 2: Stage Supervisors & Quality Checkers</h3>
+                      <p className="t-label text-[11px]" style={{ color: "var(--muted)" }}>First-off sample verification, tolerance audit, and physical stage check ({tier2Users.length} members)</p>
+                    </div>
+                  </div>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5">
+                  {tier2Users.map((u) => {
+                    const subs = users.filter((s: any) => s.managerId === u.id);
+                    const mgr = users.find((m: any) => m.id === u.managerId);
+                    return (
+                      <div
+                        key={u.id}
+                        onClick={() => canEdit(u) && setSelected(u)}
+                        className={`rounded-xl p-4 transition-all ${canEdit(u) ? "cursor-pointer hover:shadow-md hover:border-[var(--primary)]" : ""}`}
+                        style={{ backgroundColor: "var(--surface-card)", border: "1px solid var(--hairline)" }}
+                      >
+                        <div className="flex items-start justify-between gap-2 mb-2">
+                          <div className="flex items-center gap-2.5">
+                            <div className="w-9 h-9 rounded-full flex items-center justify-center font-bold text-xs" style={{ backgroundColor: "rgba(2, 132, 199, 0.12)", color: "#0284c7" }}>
+                              {u.name.split(" ").map((n: string) => n[0]).join("").slice(0, 2)}
+                            </div>
+                            <div>
+                              <div className="t-body-sm font-semibold" style={{ color: "var(--ink)" }}>{u.name}</div>
+                              <div className="t-label text-[11px]" style={{ color: "var(--muted)" }}>@{u.username}</div>
+                            </div>
+                          </div>
+                          <StatusBadge status={u.status} size="xs" />
+                        </div>
+                        <div className="space-y-1.5 pt-2 border-t text-xs" style={{ borderColor: "var(--hairline-soft)" }}>
+                          <div className="flex items-center justify-between">
+                            <span className="t-label" style={{ color: "var(--muted)" }}>Role:</span>
+                            <span className="t-label px-2 py-0.5 rounded font-medium" style={{ backgroundColor: "var(--surface-strong)", color: "var(--ink)" }}>{ROLE_LABELS[u.role] || u.role}</span>
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <span className="t-label" style={{ color: "var(--muted)" }}>Reports To:</span>
+                            <span className="font-semibold" style={{ color: "var(--primary)" }}>{mgr ? mgr.name : "Unassigned"}</span>
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <span className="t-label" style={{ color: "var(--muted)" }}>Direct Crew:</span>
+                            <span className="t-code font-semibold" style={{ color: subs.length > 0 ? "#4a7c5e" : "var(--muted)" }}>{subs.length} operator{subs.length !== 1 ? "s" : ""}</span>
+                          </div>
+                          {(u.assignedStages || []).length > 0 && (
+                            <div className="pt-1">
+                              <span className="t-label text-[10px]" style={{ color: "var(--muted)" }}>Assigned Stages: </span>
+                              <div className="flex flex-wrap gap-1 mt-1">
+                                {u.assignedStages.slice(0, 5).map((s: string) => (
+                                  <span key={s} className="t-code px-1.5 py-0.2 rounded" style={{ backgroundColor: "var(--canvas-soft)", color: "var(--primary)", fontSize: 9.5 }}>{s}</span>
+                                ))}
+                                {u.assignedStages.length > 5 && <span className="t-label text-[9px]" style={{ color: "var(--muted)" }}>+{u.assignedStages.length - 5}</span>}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Tier 3 Section */}
+              <div className="space-y-3">
+                <div className="flex items-center justify-between pb-2 border-b" style={{ borderColor: "var(--hairline)" }}>
+                  <div className="flex items-center gap-2">
+                    <span className="w-6 h-6 rounded-md flex items-center justify-center text-xs font-bold" style={{ backgroundColor: "#4a7c5e", color: "#fff" }}>3</span>
+                    <div>
+                      <h3 className="t-title-sm" style={{ color: "var(--ink)" }}>Tier 3: Line Operators & Shopfloor Technicians</h3>
+                      <p className="t-label text-[11px]" style={{ color: "var(--muted)" }}>Shopfloor fabrication, parameter measurement entry, and machine operation ({tier3Users.length} members)</p>
+                    </div>
+                  </div>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5">
+                  {tier3Users.map((u) => {
+                    const mgr = users.find((m: any) => m.id === u.managerId);
+                    return (
+                      <div
+                        key={u.id}
+                        onClick={() => canEdit(u) && setSelected(u)}
+                        className={`rounded-xl p-4 transition-all ${canEdit(u) ? "cursor-pointer hover:shadow-md hover:border-[var(--primary)]" : ""}`}
+                        style={{ backgroundColor: "var(--surface-card)", border: "1px solid var(--hairline)" }}
+                      >
+                        <div className="flex items-start justify-between gap-2 mb-2">
+                          <div className="flex items-center gap-2.5">
+                            <div className="w-9 h-9 rounded-full flex items-center justify-center font-bold text-xs" style={{ backgroundColor: "rgba(74, 124, 94, 0.12)", color: "#4a7c5e" }}>
+                              {u.name.split(" ").map((n: string) => n[0]).join("").slice(0, 2)}
+                            </div>
+                            <div>
+                              <div className="t-body-sm font-semibold" style={{ color: "var(--ink)" }}>{u.name}</div>
+                              <div className="t-label text-[11px]" style={{ color: "var(--muted)" }}>@{u.username} · Shift {u.shiftPreference || "A"}</div>
+                            </div>
+                          </div>
+                          <StatusBadge status={u.status} size="xs" />
+                        </div>
+                        <div className="space-y-1.5 pt-2 border-t text-xs" style={{ borderColor: "var(--hairline-soft)" }}>
+                          <div className="flex items-center justify-between">
+                            <span className="t-label" style={{ color: "var(--muted)" }}>Role:</span>
+                            <span className="t-label px-2 py-0.5 rounded font-medium" style={{ backgroundColor: "var(--surface-strong)", color: "var(--ink)" }}>{ROLE_LABELS[u.role] || u.role}</span>
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <span className="t-label" style={{ color: "var(--muted)" }}>Supervisor (Checker):</span>
+                            <span className="font-semibold" style={{ color: mgr ? "var(--primary)" : "var(--muted-soft)" }}>{mgr ? mgr.name : "Unassigned"}</span>
+                          </div>
+                          {(u.assignedStages || []).length > 0 && (
+                            <div className="pt-1">
+                              <span className="t-label text-[10px]" style={{ color: "var(--muted)" }}>Workstations / Stages: </span>
+                              <div className="flex flex-wrap gap-1 mt-1">
+                                {u.assignedStages.map((s: string) => (
+                                  <span key={s} className="t-code px-1.5 py-0.2 rounded" style={{ backgroundColor: "var(--canvas-soft)", color: "var(--primary)", fontSize: 9.5 }}>{s}</span>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          )
         )}
       </div>
 
       <Sheet open={!!selected} onOpenChange={(o) => !o && setSelected(null)}>
         <SheetContent className="w-full md:w-[40vw] md:max-w-[800px] p-0 overflow-y-auto" style={{ backgroundColor: "var(--surface-card)" }}>
-          {selected && <UserDetail user={selected} stages={stages} currentUser={currentUser} onUpdated={() => { load(); setSelected(null); }} />}
+          {selected && <UserDetail user={selected} allUsers={users} stages={stages} currentUser={currentUser} onUpdated={() => { load(); setSelected(null); }} />}
         </SheetContent>
       </Sheet>
 
       <Sheet open={showCreate} onOpenChange={setShowCreate}>
         <SheetContent className="w-full md:w-[40vw] md:max-w-[800px] p-0 overflow-y-auto" style={{ backgroundColor: "var(--surface-card)" }}>
-          <CreateUserForm stages={stages} plant={plant} onCreated={() => { setShowCreate(false); load(); }} />
+          <CreateUserForm stages={stages} allUsers={users} plant={plant} onCreated={() => { setShowCreate(false); load(); }} />
         </SheetContent>
       </Sheet>
     </div>
   );
 }
 
-function UserDetail({ user, stages, currentUser, onUpdated }: { user: any; stages: any[]; currentUser: User; onUpdated: () => void }) {
+function UserDetail({ user, allUsers = [], stages, currentUser, onUpdated }: { user: any; allUsers?: any[]; stages: any[]; currentUser: User; onUpdated: () => void }) {
   const [role, setRole] = useState(user.role);
   const [department, setDepartment] = useState(user.department || "");
   const [status, setStatus] = useState(user.status);
   const [shiftPreference, setShiftPreference] = useState(user.shiftPreference || "");
+  const [managerId, setManagerId] = useState(user.managerId || "");
   const [assignedStages, setAssignedStages] = useState<string[]>(user.assignedStages || []);
   const [managedStages, setManagedStages] = useState<string[]>(user.managedStages || []);
   const [saving, setSaving] = useState(false);
@@ -6192,15 +6527,32 @@ function UserDetail({ user, stages, currentUser, onUpdated }: { user: any; stage
     set(list.includes(code) ? list.filter(s => s !== code) : [...list, code]);
   };
 
+  const directReports = useMemo(() => {
+    return (allUsers || []).filter((u: any) => u.managerId === user.id);
+  }, [allUsers, user.id]);
+
   const save = async () => {
     setSaving(true);
     const res = await fetch("/api/users", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id: user.id, role, department, status, shiftPreference, assignedStages, managedStages }),
+      body: JSON.stringify({
+        id: user.id,
+        role,
+        department,
+        status,
+        shiftPreference,
+        managerId: managerId === "none" || managerId === "" ? null : managerId,
+        assignedStages,
+        managedStages,
+      }),
     });
-    if (res.ok) { toast({ title: "User updated", description: `${user.name} → ${role} · ${status}` }); onUpdated(); }
-    else { toast({ title: "Update failed", variant: "destructive" }); }
+    if (res.ok) {
+      toast({ title: "User & Hierarchy updated", description: `${user.name} reporting structure saved.` });
+      onUpdated();
+    } else {
+      toast({ title: "Update failed", variant: "destructive" });
+    }
     setSaving(false);
   };
 
@@ -6227,7 +6579,79 @@ function UserDetail({ user, stages, currentUser, onUpdated }: { user: any; stage
         </div>
         <SheetDescription className="t-body-md" style={{ color: "var(--muted)" }}>@{user.username} · {user.email}</SheetDescription>
       </SheetHeader>
-      <div className="p-6 space-y-4">
+      <div className="p-6 space-y-5">
+        {/* Authority Tier Banner */}
+        <div className="rounded-xl p-3.5 flex items-center justify-between" style={{ backgroundColor: "rgba(8, 50, 96, 0.05)", border: "1px solid rgba(8, 50, 96, 0.15)" }}>
+          <div className="flex items-center gap-2.5">
+            <ShieldCheck size={18} style={{ color: "var(--primary)" }} />
+            <div>
+              <div className="t-body-sm font-semibold" style={{ color: "var(--ink)" }}>
+                {["Admin", "Director", "DGM", "QualityManager", "PlantManager", "LineManager"].includes(role) ? "Tier 1: Releasing Approver" :
+                 ["QCInspector", "ProcessEngineer", "AssistantManager"].includes(role) ? "Tier 2: Quality Checker" :
+                 ["Operator", "ProductionSupervisor"].includes(role) ? "Tier 3: Line Operator" : "Governance Staff"}
+              </div>
+              <div className="t-label text-[11px]" style={{ color: "var(--muted)" }}>
+                {["Admin", "Director", "DGM", "QualityManager", "PlantManager", "LineManager"].includes(role) ? "Authorized for final inspection release and rework sign-off" :
+                 ["QCInspector", "ProcessEngineer", "AssistantManager"].includes(role) ? "Authorized for stage parameter verification and tolerance checks" :
+                 "Authorized for shopfloor execution and measurement recording"}
+              </div>
+            </div>
+          </div>
+          <span className="t-label px-2 py-0.5 rounded-full font-mono text-[10px]" style={{ backgroundColor: "var(--surface-strong)", color: "var(--primary)" }}>
+            ORG LEVEL
+          </span>
+        </div>
+
+        {/* Supervisor Allocation (Who Follows Who) */}
+        <div className="rounded-xl p-4 space-y-3" style={{ backgroundColor: "var(--canvas-soft)", border: "1px solid var(--hairline)" }}>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Workflow size={15} style={{ color: "var(--primary)" }} />
+              <Label className="t-body-sm font-semibold" style={{ color: "var(--ink)" }}>Reports To (Direct Supervisor / Manager)</Label>
+            </div>
+            <span className="t-label text-[10px]" style={{ color: "var(--muted)" }}>APPROVAL CHAIN</span>
+          </div>
+          <Select value={managerId || "none"} onValueChange={(val) => setManagerId(val === "none" ? "" : val)}>
+            <SelectTrigger className="w-full t-body-sm h-9 rounded-lg" style={{ borderColor: "var(--hairline)", backgroundColor: "var(--surface-card)" }}>
+              <SelectValue placeholder="Select Direct Manager / Supervisor" />
+            </SelectTrigger>
+            <SelectContent className="max-h-64">
+              <SelectItem value="none">-- No Direct Supervisor (Top Level / Board) --</SelectItem>
+              {allUsers.filter((u: any) => u.id !== user.id).map((u: any) => (
+                <SelectItem key={u.id} value={u.id}>
+                  {u.name} ({ROLE_LABELS[u.role] || u.role} · {u.department || "Plant"})
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <p className="t-label text-[11px]" style={{ color: "var(--muted-soft)" }}>
+            When this user files an inspection or stage checkpoint, the system automatically routes the verification task to their assigned supervisor.
+          </p>
+        </div>
+
+        {/* Direct Subordinates if any */}
+        {directReports.length > 0 && (
+          <div className="rounded-xl p-4 space-y-2.5" style={{ backgroundColor: "var(--canvas-soft)", border: "1px solid var(--hairline)" }}>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Users size={14} style={{ color: "#4a7c5e" }} />
+                <span className="t-body-sm font-semibold" style={{ color: "var(--ink)" }}>Direct Reports ({directReports.length})</span>
+              </div>
+              <span className="t-label text-[10px] font-mono px-2 py-0.2 rounded-full" style={{ backgroundColor: "rgba(74, 124, 94, 0.12)", color: "#4a7c5e" }}>
+                SUBORDINATE CREW
+              </span>
+            </div>
+            <div className="flex flex-wrap gap-1.5">
+              {directReports.map((sub: any) => (
+                <span key={sub.id} className="t-label px-2.5 py-1 rounded-md flex items-center gap-1.5" style={{ backgroundColor: "var(--surface-card)", border: "1px solid var(--hairline)", color: "var(--ink)" }}>
+                  <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: "#4a7c5e" }} />
+                  <strong>{sub.name}</strong> <span style={{ color: "var(--muted)", fontSize: 10 }}>({ROLE_LABELS[sub.role] || sub.role})</span>
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
+
         <div className="grid grid-cols-2 gap-3">
           <div>
             <Label className="t-label" style={{ color: "var(--muted)" }}>Role</Label>
@@ -6334,11 +6758,12 @@ function UserDetail({ user, stages, currentUser, onUpdated }: { user: any; stage
   );
 }
 
-function CreateUserForm({ stages, plant, onCreated }: { stages: any[]; plant: string; onCreated: () => void }) {
+function CreateUserForm({ stages, allUsers = [], plant, onCreated }: { stages: any[]; allUsers?: any[]; plant: string; onCreated: () => void }) {
   const [form, setForm] = useState({
     username: "", password: "", name: "", email: "",
     role: "Operator" as Role, department: "Quality", plant,
     shiftPreference: "A", status: "Active",
+    managerId: "",
   });
   const [assignedStages, setAssignedStages] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
@@ -6353,11 +6778,15 @@ function CreateUserForm({ stages, plant, onCreated }: { stages: any[]; plant: st
     const res = await fetch("/api/users", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ...form, assignedStages }),
+      body: JSON.stringify({
+        ...form,
+        managerId: form.managerId === "none" || !form.managerId ? null : form.managerId,
+        assignedStages,
+      }),
     });
     const data = await res.json();
     if (res.ok) {
-      toast({ title: "User created", description: `${form.name} (@${form.username})` });
+      toast({ title: "User created", description: `${form.name} (@${form.username}) added to hierarchy.` });
       onCreated();
     } else {
       toast({ title: "Creation failed", description: data.error || "Unknown error", variant: "destructive" });
@@ -6369,7 +6798,7 @@ function CreateUserForm({ stages, plant, onCreated }: { stages: any[]; plant: st
     <div>
       <SheetHeader className="px-6 pt-6 pb-4 border-b" style={{ borderColor: "var(--hairline)" }}>
         <SheetTitle className="t-display-sm" style={{ color: "var(--ink)" }}>New User</SheetTitle>
-        <SheetDescription className="t-body-sm" style={{ color: "var(--muted)" }}>Create a new QMS account with role and stage permissions.</SheetDescription>
+        <SheetDescription className="t-body-sm" style={{ color: "var(--muted)" }}>Create a new QMS account with role, stage permissions, and reporting supervisor.</SheetDescription>
       </SheetHeader>
       <div className="p-6 space-y-3">
         <div className="grid grid-cols-2 gap-3">
@@ -6381,6 +6810,23 @@ function CreateUserForm({ stages, plant, onCreated }: { stages: any[]; plant: st
           <SelectField label="Department" value={form.department} onChange={(v) => setForm({ ...form, department: v })} options={DEPARTMENT_OPTIONS.map(d => [d, d] as [string, string])} />
           <SelectField label="Shift" value={form.shiftPreference} onChange={(v) => setForm({ ...form, shiftPreference: v })} options={SHIFT_OPTIONS.map(s => [s, `Shift ${s}`] as [string, string])} />
           <SelectField label="Plant" value={form.plant} onChange={(v) => setForm({ ...form, plant: v })} options={[["K2","K2 - Khopoli"]]} />
+        </div>
+
+        <div>
+          <Label className="t-label" style={{ color: "var(--muted)" }}>Reports To (Direct Supervisor / Manager)</Label>
+          <Select value={form.managerId || "none"} onValueChange={(val) => setForm({ ...form, managerId: val === "none" ? "" : val })}>
+            <SelectTrigger className="mt-1 w-full t-body-sm h-9 rounded-lg" style={{ borderColor: "var(--hairline)" }}>
+              <SelectValue placeholder="Select Direct Supervisor" />
+            </SelectTrigger>
+            <SelectContent className="max-h-60">
+              <SelectItem value="none">-- No Direct Supervisor (Top-Level) --</SelectItem>
+              {allUsers.map((u: any) => (
+                <SelectItem key={u.id} value={u.id}>
+                  {u.name} ({ROLE_LABELS[u.role] || u.role} · {u.department || "Plant"})
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
 
         <Separator />
@@ -7831,181 +8277,484 @@ const STAGE_QC_PARAMS: Record<string, { param: string; spec: string; method: str
   ],
 };
 
-function ProcessFlowModule({ plant, plantInfo, user, onNavigate, onInspect }: { plant: string; plantInfo: any; user: User; onNavigate: (k: ModuleKey) => void; onInspect: (stageCode: string | null) => void }) {
-  const [expandedStage, setExpandedStage] = useState<number | null>(null);
+// ============================================================
+// MES-QMS MANUFACTURING ZONES & AUDIT REFERENCE
+// ============================================================
+const AUDIT_MISSING_DOCS = new Set([
+  "QCI/F/09/01", "PRO/F/02/04", "PRO/F/02/08", "PRO/F/02/06",
+  "QCI/F/05/01", "QCI/F/05/04", "PRO/F/02/25", "QCI/F/06/04",
+  "PRO/S/02/60", "PRO/F/02/05", "QCI/F/06/01", "QCI/F/06/02",
+  "QCI/F/06/08", "QCI/F/06/06", "QCI/S/06/05", "QCI/F/06/10",
+  "QCI/F/06/07", "QCI/F/07/01", "QCI/F/07/02", "QCI/S/07/01",
+  "QCI/S/07/02", "QCI/S/07/03", "QCI/F/02/07", "PRO/F/02/09",
+  "PRO/F/02/10", "PRO/F/02/11", "QCI/F/05/05", "QCI/F/05/06",
+  "PRO/S/02/61", "PRO/F/02/26"
+]);
 
-  // Unified radiator process flow - single product focus, not split by plant
-  const radiatorStages = ROUTE_FLOWS[0]?.stages || [];
-  const ctqCount = radiatorStages.filter(s => s.isCTQ).length;
-  const gateCount = radiatorStages.filter(s => s.isGate).length;
+const MANUFACTURING_ZONES = [
+  {
+    id: "zone-1",
+    name: "Zone 1: Component & Fin Fabrication",
+    shortName: "1. Fin & Core Fab",
+    stageRange: "S01 - S10",
+    stageCodes: ["S01", "S02", "S03", "S04", "S05", "S06", "S07", "S08", "S09", "S10"],
+    objective: "High-precision strip forming, resistance spot welding, automated seam welding, trimming, plasma pipe cutting and header flaring.",
+    standards: "ISO 9001:2015, IS 2062, QCI/Q/02/01 Rev.08, QCI/F/02/01-06",
+    safety: "Leather safety gloves, safety goggles, ear plugs, industrial safety shoes",
+    color: "#0284c7"
+  },
+  {
+    id: "zone-2",
+    name: "Zone 2: Assembly & Structural MAG Welding",
+    shortName: "2. Assembly & MAG",
+    stageRange: "S11 - S13",
+    stageCodes: ["S11", "S12", "S13"],
+    objective: "Precision radiator erection, multi-axis clamping, continuous structural MAG welding per approved WPS, and rigorous spatter removal.",
+    standards: "AWS D1.1, ASME Section IX, WPS VAA/HTR/CS/WPS, QCI/F/05/03-07",
+    safety: "Auto-darkening welding helmet, leather apron, welder sleeves, heat-resistant gloves",
+    color: "#6366f1"
+  },
+  {
+    id: "zone-3",
+    name: "Zone 3: Hydrostatic Pressure & Leak Testing",
+    shortName: "3. Hydro Leak Gate",
+    stageRange: "S14",
+    stageCodes: ["S14"],
+    objective: "MANDATORY QUALITY GATE: 2.0 kg/cm² pneumatic/hydrostatic pressure dwell for 30 minutes. Absolute zero pressure drop and zero soap-bubble leakage.",
+    standards: "ASME Section VIII Div 1, QCI/F/05/08 Rev.03, IS 2062 Pressure Vessel Code",
+    safety: "Impact-rated safety face shield, pressure safety valves, steel-toed boots",
+    color: "#dc2626",
+    isGateZone: true
+  },
+  {
+    id: "zone-4",
+    name: "Zone 4: Hot-Dip Galvanizing (HDG)",
+    shortName: "4. Hot-Dip Galvanizing",
+    stageRange: "S15 - S19",
+    stageCodes: ["S15", "S16", "S17", "S18", "S19"],
+    objective: "Pre-galv inspection, 9-tank chemical pretreatment, acid/flux laboratory titration, molten zinc immersion at 450°C, and final coating thickness testing.",
+    standards: "ISO 1461, ASTM A123, IS 2633, IS 2629, IS 6745, QCI/F/10/01-06",
+    safety: "Chemical-resistant rubber aprons, nitrile gauntlets, respirator nose masks, heat-reflective face shield",
+    color: "#d97706"
+  },
+  {
+    id: "zone-5",
+    name: "Zone 5: Surface Prep, Blasting & Paint Shop",
+    shortName: "5. Blasting & Paint Shop",
+    stageRange: "S20 - S33",
+    stageCodes: ["S20", "S21", "S22", "S23", "S24", "S25", "S26", "S27", "S28", "S29", "S30", "S31", "S32", "S33"],
+    objective: "Grit/sweep blasting to Sa 2.5 profile (40-75 µm), RD124 internal epoxy coating, tilting & hot air purging, intermediate MIO, oven baking, PU finish flooding, and endoscopic inspection.",
+    standards: "ISO 12944 (C4/C5-M), SSPC-SP16, ISO 8501-1, ASTM D-4417, ASTM D 3359, NACE-SP0188",
+    safety: "Air-fed positive-pressure blasting helmet, organic vapor respirators, anti-static boiler suit",
+    color: "#8b5cf6"
+  },
+  {
+    id: "zone-6",
+    name: "Zone 6: Final Product Inspection & Dispatch",
+    shortName: "6. Final QC & Dispatch",
+    stageRange: "S34 - S38",
+    stageCodes: ["S34", "S35", "S36", "S37", "S38"],
+    objective: "Final comprehensive quality clearance, N2 inert gas holding pressure (0.5 kg/cm²), ISPM-15 fumigated export packaging, and customer QA dossier sign-off.",
+    standards: "ISO 9001:2015, IEC 60076, ISPM-15, PRO/F/02/05, QCI/F/03/01, QCI/F/07/01-02",
+    safety: "Hi-vis vest, safety helmet, cut-resistant gloves, steel-toed footwear",
+    color: "#059669"
+  }
+];
+
+function ProcessFlowModule({ plant, plantInfo, user, onNavigate, onInspect }: { plant: string; plantInfo: any; user: User; onNavigate: (k: ModuleKey) => void; onInspect: (stageCode: string | null) => void }) {
+  const [selectedZoneId, setSelectedZoneId] = useState<string>("all");
+  const [expandedStages, setExpandedStages] = useState<Record<string, boolean>>({});
+  const [stageSearch, setStageSearch] = useState<string>("");
+
+  const allStages = ROUTE_FLOWS[0]?.stages || [];
+  const ctqCount = allStages.filter(s => s.isCTQ).length;
+  const gateCount = allStages.filter(s => s.isGate).length;
+
+  const currentZone = useMemo(() => {
+    return MANUFACTURING_ZONES.find(z => z.id === selectedZoneId) || null;
+  }, [selectedZoneId]);
+
+  const displayedStages = useMemo(() => {
+    let list = allStages;
+    if (currentZone) {
+      list = list.filter(s => currentZone.stageCodes.includes(s.code));
+    }
+    if (stageSearch.trim()) {
+      const q = stageSearch.toLowerCase();
+      list = list.filter(s => s.code.toLowerCase().includes(q) || s.name.toLowerCase().includes(q) || s.doc.toLowerCase().includes(q) || s.dept.toLowerCase().includes(q));
+    }
+    return list;
+  }, [allStages, currentZone, stageSearch]);
+
+  const toggleStage = (code: string) => {
+    setExpandedStages(prev => ({ ...prev, [code]: !prev[code] }));
+  };
+
+  const isDocMissingFromPdfAudit = (docStr: string) => {
+    return Array.from(AUDIT_MISSING_DOCS).some(code => docStr.includes(code));
+  };
 
   return (
     <div className="reveal-up">
       <PageHeader
-        eyebrow="Radiator Manufacturing Process"
-        title="Process Flow & QC Parameters"
-        subtitle="Complete radiator manufacturing process with quality control parameters, standards, and acceptance criteria at each stage. Click any stage to view its QC checklist details."
+        eyebrow="Shopfloor MES-QMS Integration"
+        title="Manufacturing Process Flow & Quality Plan"
+        subtitle="End-to-end 38-stage radiator manufacturing pipeline mapped into 6 interconnected operational zones per MES-QMS Master Sheet."
         helpId="process.flow"
+        action={
+          <a
+            href="/Missing_Inspection_Forms_Audit_Report.pdf"
+            target="_blank"
+            download="Missing_Inspection_Forms_Audit_Report.pdf"
+            className="t-button h-9 px-4 rounded-lg flex items-center gap-2 font-medium shadow-sm transition-all hover:opacity-90"
+            style={{ backgroundColor: "var(--primary)", color: "var(--on-primary)" }}
+          >
+            <Download size={14} /> Download Missing Forms Audit PDF (30 Missing Forms Documented)
+          </a>
+        }
         meta={
           <>
-            <span className="t-label t-num" style={{ color: "var(--muted)" }}>{radiatorStages.length} STAGES</span>
+            <span className="t-label t-num" style={{ color: "var(--muted)" }}>38 STAGES</span>
             <span className="t-label" style={{ color: "var(--muted)" }}>·</span>
-            <span className="t-label t-num" style={{ color: "var(--muted)" }}>{ctqCount} CTQ · {gateCount} GATES</span>
+            <span className="t-label t-num" style={{ color: "var(--muted)" }}>6 ZONES</span>
+            <span className="t-label" style={{ color: "var(--muted)" }}>·</span>
+            <span className="t-label t-num" style={{ color: "var(--primary)" }}>{ctqCount} CTQ · {gateCount} GATES</span>
           </>
         }
       />
 
-      <div className="p-5 md:p-10 space-y-6">
-        {/* Legend */}
-        <div className="flex items-center gap-6 flex-wrap">
-          <div className="flex items-center gap-1.5">
-            <div className="dot" style={{ backgroundColor: "var(--primary)" }} />
-            <span className="t-label" style={{ color: "var(--muted)" }}>CTQ PARAMETER</span>
+      <div className="p-4 md:p-8 space-y-6">
+        {/* Audit Status Banner */}
+        <div className="rounded-xl p-4 flex flex-col md:flex-row items-start md:items-center justify-between gap-4" style={{ backgroundColor: "rgba(8, 50, 96, 0.04)", border: "1px solid rgba(8, 50, 96, 0.12)" }}>
+          <div className="flex items-start gap-3">
+            <FileCheck2 size={20} className="shrink-0 mt-0.5" style={{ color: "var(--primary)" }} />
+            <div>
+              <div className="t-body-sm font-semibold" style={{ color: "var(--ink)" }}>
+                Physical PDF Audit: 64 Verified Checklists · 30 Missing Standards Cataloged & Digitized
+              </div>
+              <div className="t-label text-[11.5px] mt-0.5" style={{ color: "var(--body)" }}>
+                All 30 missing inspection forms identified from the MES-QMS Master (such as PRO/F/02/25, PRO/S/02/60, and PRO/F/02/05) have been audited, cataloged in the official audit PDF report, and provided as active digital forms in HIVE.
+              </div>
+            </div>
           </div>
-          <div className="flex items-center gap-1.5">
-            <div className="w-3 h-3 rounded-sm" style={{ border: "1.5px solid var(--primary)" }} />
-            <span className="t-label" style={{ color: "var(--muted)" }}>QUALITY GATE</span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <FileText size={14} style={{ color: "var(--muted)" }} />
-            <span className="t-label" style={{ color: "var(--muted)" }}>Click stage to view QC parameters</span>
-          </div>
+          <a
+            href="/Missing_Inspection_Forms_Audit_Report.pdf"
+            target="_blank"
+            download="Missing_Inspection_Forms_Audit_Report.pdf"
+            className="shrink-0 t-label px-3 py-1.5 rounded-lg flex items-center gap-1.5 font-semibold transition-colors"
+            style={{ backgroundColor: "var(--surface-card)", border: "1px solid var(--hairline)", color: "var(--primary)" }}
+          >
+            <Download size={12} /> Audit Report PDF
+          </a>
         </div>
 
-        {/* Stage timeline with inline QC details */}
-        <div className="rounded-md" style={{ border: "1px solid var(--hairline)", backgroundColor: "var(--surface-card)" }}>
-          <div className="px-5 md:px-8 py-2">
-            {radiatorStages.map((stage, i) => {
-              const isLast = i === radiatorStages.length - 1;
-              const isExpanded = expandedStage === i;
-              const qcParams = STAGE_QC_PARAMS[stage.code] || [];
-              return (
-                <div key={`${stage.code}-${i}`} className="relative" style={{ borderBottom: isLast ? "none" : "1px solid var(--hairline-soft)" }}>
-                  <button
-                    onClick={() => setExpandedStage(isExpanded ? null : i)}
-                    className="w-full flex items-start gap-5 py-5 text-left transition-colors hover:bg-[var(--canvas-soft)]"
-                    title={`Stage ${stage.code}: ${stage.name} - ${qcParams.length} QC parameters - Document: ${stage.doc}${stage.isCTQ ? ' - Contains CTQ parameters' : ''}${stage.isGate ? ' - Quality Gate (blocks progression)' : ''}`}
-                  >
-                    <div className="shrink-0 flex flex-col items-center" style={{ width: 28 }}>
-                      <div className="w-7 h-7 rounded-full flex items-center justify-center t-num" style={{
-                        backgroundColor: stage.isGate ? "var(--surface-card)" : stage.isCTQ ? "var(--primary)14" : "var(--canvas-soft)",
-                        border: stage.isGate ? `1.5px solid var(--primary)` : "1px solid var(--hairline)",
-                        color: stage.isGate ? "var(--primary)" : stage.isCTQ ? "var(--primary)" : "var(--muted)", fontSize: 11, fontWeight: 600,
-                      }}>{i + 1}</div>
-                      {!isLast && <div className="flex-1 w-px mt-1" style={{ backgroundColor: "var(--hairline)", minHeight: 20 }} />}
-                    </div>
-                    <div className="min-w-0 flex-1 pb-1">
-                      <div className="flex items-center gap-2 flex-wrap mb-1">
-                        <span className="t-code" style={{ color: "var(--muted)", fontSize: 11 }}>{stage.code}</span>
-                        <h3 className="t-title-sm" style={{ color: "var(--ink)" }}>{stage.name}</h3>
-                        {stage.isCTQ && <span className="t-label px-1.5 py-0.5 rounded" style={{ backgroundColor: "var(--primary)14", color: "var(--primary)", fontSize: 9.5 }}>CTQ</span>}
-                        {stage.isGate && <span className="t-label px-1.5 py-0.5 rounded" style={{ border: `1px solid var(--primary)`, color: "var(--primary)", fontSize: 9.5 }}>GATE</span>}
-                        {qcParams.length > 0 && <span className="t-label" style={{ color: "var(--muted-soft)" }}>{qcParams.length} parameters</span>}
-                      </div>
-                      <div className="flex items-center gap-4 flex-wrap">
-                        <span className="t-body-sm" style={{ color: "var(--body)" }}>{stage.dept}</span>
-                        <span className="t-body-sm" style={{ color: "var(--muted)" }}>·</span>
-                        <span className="t-code" style={{ color: "var(--muted)", fontSize: 11 }}>{stage.doc}</span>
-                      </div>
-                    </div>
-                    <div className="shrink-0 pt-1">
-                      <ChevronDown size={16} style={{ color: "var(--muted)", transform: isExpanded ? "rotate(180deg)" : "none", transition: "transform 0.2s" }} />
-                    </div>
-                  </button>
-                  {isExpanded && (
-                    <div className="pb-5 pl-12 pr-4 fade-in">
-                      <div className="rounded-md overflow-hidden" style={{ border: "1px solid var(--hairline-soft)" }}>
-                        <div className="flex items-center gap-3 px-4 py-2.5" style={{ backgroundColor: "var(--canvas-soft)", borderBottom: "1px solid var(--hairline-soft)" }}>
-                          <FileText size={14} style={{ color: "var(--primary)" }} />
-                          <span className="t-label" style={{ color: "var(--primary)" }}>QC CHECKLIST · {stage.doc}</span>
-                          <span className="t-label ml-auto" style={{ color: "var(--muted)" }}>{qcParams.length} PARAMETERS</span>
-                        </div>
-                        {qcParams.length > 0 ? (
-                          <table className="w-full" style={{ borderCollapse: "collapse" }}>
-                            <thead><tr style={{ borderBottom: "1px solid var(--hairline)" }}>
-                              <th className="t-label text-left py-2 px-3" style={{ color: "var(--muted)", fontSize: 9 }}>PARAMETER</th>
-                              <th className="t-label text-left py-2 px-3" style={{ color: "var(--muted)", fontSize: 9 }}>ACCEPTANCE CRITERIA</th>
-                              <th className="t-label text-left py-2 px-3" style={{ color: "var(--muted)", fontSize: 9 }}>METHOD / INSTRUMENT</th>
-                              <th className="t-label text-center py-2 px-3" style={{ color: "var(--muted)", fontSize: 9 }}>CTQ</th>
-                            </tr></thead>
-                            <tbody>
-                              {qcParams.map((p, pi) => (
-                                <tr key={pi} style={{ borderBottom: "1px solid var(--hairline-soft)" }}>
-                                  <td className="t-body-sm py-2 px-3" style={{ color: "var(--ink)", fontWeight: 500 }}>{p.param}</td>
-                                  <td className="t-body-sm py-2 px-3 t-code" style={{ color: "var(--body)", fontSize: 11 }}>{p.spec}</td>
-                                  <td className="t-body-sm py-2 px-3" style={{ color: "var(--muted)" }}>{p.method}</td>
-                                  <td className="text-center py-2 px-3">
-                                    {p.ctq ? <span className="t-label px-1.5 py-0.5 rounded" style={{ backgroundColor: "var(--primary)14", color: "var(--primary)", fontSize: 8 }}>CTQ</span> : <span style={{ color: "var(--muted-soft)" }}>-</span>}
-                                  </td>
-                                </tr>
-                              ))}
-                            </tbody>
-                          </table>
-                        ) : (
-                          <div className="px-4 py-6 text-center"><div className="t-body-sm" style={{ color: "var(--muted)" }}>QC parameters for this stage are being configured. Refer to document {stage.doc} for the current checklist.</div></div>
-                        )}
-                        {/* Reaction plan */}
-                        <div className="px-4 py-2.5" style={{ backgroundColor: "#fef2f2", borderTop: "1px solid var(--hairline-soft)" }}>
-                          <div className="flex items-center gap-2">
-                            <AlertTriangle size={12} style={{ color: "#dc2626" }} />
-                            <span className="t-label" style={{ color: "#dc2626" }}>REACTION PLAN: Hold job and inform QA/Production Head. Failed CTQ auto-creates NCR and blocks progression to next process.</span>
-                          </div>
-                        </div>
+        {/* 6-Zone Interactive Pipeline Selector */}
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <div className="t-label" style={{ color: "var(--muted)" }}>MANUFACTURING ZONES (MES-QMS PIPELINE)</div>
+            <div className="text-[11px] t-label" style={{ color: "var(--muted-soft)" }}>Click a zone to focus operational stages</div>
+          </div>
 
-                        {/* Standards & Safety reference */}
-                        <div className="grid grid-cols-2" style={{ borderTop: "1px solid var(--hairline-soft)" }}>
-                          <div className="px-4 py-2.5" style={{ borderRight: "1px solid var(--hairline-soft)" }}>
-                            <div className="flex items-center gap-2 mb-1">
-                              <ShieldCheck size={11} style={{ color: "var(--primary)" }} />
-                              <span className="t-label" style={{ color: "var(--muted)", fontSize: 8 }}>STANDARDS REFERENCED</span>
-                            </div>
-                            <div className="t-body-sm" style={{ color: "var(--body)", fontSize: 10 }}>
-                              {stage.code === "S15" || stage.code === "S16" || stage.code === "S17" || stage.code === "S18" || stage.code === "S19" ? "ISO 1461, ASTM A123, IS 2633, IS 2629, IS 6745, QCI/F/10/01-06" :
-                               stage.code === "S20" || stage.code === "S21" ? "SSPC-SP16, ISO 8501-1, ASTM D-4417, QCI/F/06/01" :
-                               stage.code === "S22" || stage.code === "S23" || stage.code === "S24" || stage.code === "S25" || stage.code === "S26" || stage.code === "S27" || stage.code === "S28" || stage.code === "S29" || stage.code === "S30" || stage.code === "S31" || stage.code === "S32" || stage.code === "S33" ? "ISO 12944, ISO 2409, ASTM D 3359, NACE-SP0188, QCI/F/06/04" :
-                               stage.code === "S34" ? "ISO 2409, ASTM D 3359, NACE-SP0188, QCI/F/03/01" :
-                               stage.code === "S35" || stage.code === "S36" || stage.code === "S37" || stage.code === "S38" ? "ISO 9001, QCI/F/07/01-02, QCI/S/07/01-03" :
-                               "ISO 9001, AWS D1.1, IS 2062, QCI/Q/02/01 Rev.08"}
-                            </div>
-                          </div>
-                          <div className="px-4 py-2.5">
-                            <div className="flex items-center gap-2 mb-1">
-                              <Wrench size={11} style={{ color: "var(--muted)" }} />
-                              <span className="t-label" style={{ color: "var(--muted)", fontSize: 8 }}>SAFETY & PPE</span>
-                            </div>
-                            <div className="t-body-sm" style={{ color: "var(--body)", fontSize: 10 }}>
-                              {stage.code === "S15" || stage.code === "S16" || stage.code === "S17" || stage.code === "S18" || stage.code === "S19" ? "Helmet, safety shoes, nose mask, rubber gloves, safety goggles" :
-                               stage.code === "S20" || stage.code === "S21" ? "Air feed blasting helmet, blasting shoes, mask, boiler suit" :
-                               stage.code === "S22" || stage.code === "S23" || stage.code === "S24" || stage.code === "S27" || stage.code === "S29" || stage.code === "S30" ? "Hand gloves, safety shoes, nose mask, helmet, apron" :
-                               stage.code === "S33" || stage.code === "S34" ? "Hand gloves, safety shoes, nose mask, helmet" :
-                               "Standard PPE per plant safety policy"}
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </div>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-2">
+            <button
+              type="button"
+              onClick={() => setSelectedZoneId("all")}
+              className={`p-3 rounded-xl text-left transition-all ${selectedZoneId === "all" ? "ring-2 ring-[var(--primary)] shadow-sm" : "hover:bg-[var(--canvas-soft)]"}`}
+              style={{
+                backgroundColor: selectedZoneId === "all" ? "var(--surface-card)" : "var(--canvas-soft)",
+                border: "1px solid var(--hairline)",
+              }}
+            >
+              <div className="flex items-center justify-between mb-1">
+                <span className="t-code text-[10px] font-bold" style={{ color: "var(--muted)" }}>ALL</span>
+                <span className="t-label text-[10px] font-mono px-1.5 py-0.2 rounded" style={{ backgroundColor: "var(--surface-strong)" }}>38</span>
+              </div>
+              <div className="t-body-sm font-semibold truncate" style={{ color: "var(--ink)" }}>All Stages</div>
+              <div className="t-label text-[10px] mt-0.5" style={{ color: "var(--muted)" }}>End-to-end flow</div>
+            </button>
+
+            {MANUFACTURING_ZONES.map((zone) => {
+              const isSelected = selectedZoneId === zone.id;
+              const zoneStages = allStages.filter(s => zone.stageCodes.includes(s.code));
+              const zoneCtq = zoneStages.filter(s => s.isCTQ).length;
+              const hasGate = zoneStages.some(s => s.isGate);
+
+              return (
+                <button
+                  key={zone.id}
+                  type="button"
+                  onClick={() => setSelectedZoneId(zone.id)}
+                  className={`p-3 rounded-xl text-left transition-all ${isSelected ? "ring-2 shadow-sm" : "hover:bg-[var(--canvas-soft)]"}`}
+                  style={{
+                    backgroundColor: isSelected ? "var(--surface-card)" : "var(--canvas-soft)",
+                    border: `1px solid ${isSelected ? zone.color : "var(--hairline)"}`,
+                    borderColor: isSelected ? zone.color : undefined,
+                  }}
+                >
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="t-code text-[10px] font-bold" style={{ color: zone.color }}>{zone.stageRange}</span>
+                    {hasGate && <span className="t-label text-[9px] px-1 py-0.2 rounded font-bold" style={{ backgroundColor: "#dc262615", color: "#dc2626" }}>GATE</span>}
+                  </div>
+                  <div className="t-body-sm font-semibold truncate" style={{ color: "var(--ink)" }}>{zone.shortName}</div>
+                  <div className="flex items-center gap-1.5 mt-0.5 text-[10px]" style={{ color: "var(--muted)" }}>
+                    <span>{zoneStages.length} stages</span>
+                    {zoneCtq > 0 && <span style={{ color: zone.color }}>· {zoneCtq} CTQ</span>}
+                  </div>
+                </button>
               );
             })}
           </div>
         </div>
 
-        <div className="grid md:grid-cols-3 gap-4">
-          <div className="rounded-md p-5" style={{ border: "1px solid var(--hairline)", backgroundColor: "var(--surface-card)" }}>
-            <div className="flex items-center gap-2 mb-3"><ShieldCheck size={16} style={{ color: "var(--primary)" }} /><span className="t-title-sm" style={{ color: "var(--ink)" }}>Quality gates</span></div>
-            <p className="t-body-sm" style={{ color: "var(--body)" }}>A gate stage blocks downstream progression until the gate inspection passes. If any test fails, the product is flagged as defective and goes to rework.</p>
-            <div className="mt-3 t-label t-num" style={{ color: "var(--muted)" }}>{gateCount} QUALITY GATES</div>
+        {/* Selected Zone Governance Summary Card */}
+        {currentZone && (
+          <div className="rounded-xl p-5 space-y-3" style={{ backgroundColor: "var(--surface-card)", border: `1.5px solid ${currentZone.color}30` }}>
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-2 pb-3 border-b" style={{ borderColor: "var(--hairline-soft)" }}>
+              <div>
+                <span className="t-code text-xs font-bold uppercase" style={{ color: currentZone.color }}>{currentZone.stageRange} · Operational Scope</span>
+                <h3 className="t-title-sm mt-0.5" style={{ color: "var(--ink)" }}>{currentZone.name}</h3>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="t-label px-2.5 py-1 rounded-full text-xs font-medium" style={{ backgroundColor: `${currentZone.color}15`, color: currentZone.color }}>
+                  {displayedStages.length} Manufacturing Stages
+                </span>
+                {currentZone.isGateZone && (
+                  <span className="t-label px-2.5 py-1 rounded-full text-xs font-bold" style={{ backgroundColor: "#dc262618", color: "#dc2626" }}>
+                    CRITICAL ZERO-DEFECT QUALITY GATE
+                  </span>
+                )}
+              </div>
+            </div>
+
+            <p className="t-body-sm" style={{ color: "var(--body)" }}>{currentZone.objective}</p>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-2 text-xs">
+              <div className="p-3 rounded-lg" style={{ backgroundColor: "var(--canvas-soft)", border: "1px solid var(--hairline-soft)" }}>
+                <div className="flex items-center gap-1.5 mb-1 font-semibold" style={{ color: "var(--primary)" }}>
+                  <ShieldCheck size={13} />
+                  <span>GOVERNING STANDARDS & SOP CODES</span>
+                </div>
+                <div className="t-body-sm" style={{ color: "var(--body)", fontSize: 11 }}>{currentZone.standards}</div>
+              </div>
+              <div className="p-3 rounded-lg" style={{ backgroundColor: "var(--canvas-soft)", border: "1px solid var(--hairline-soft)" }}>
+                <div className="flex items-center gap-1.5 mb-1 font-semibold" style={{ color: "var(--muted)" }}>
+                  <Wrench size={13} />
+                  <span>SAFETY PPE & SHOPFLOOR GEAR</span>
+                </div>
+                <div className="t-body-sm" style={{ color: "var(--body)", fontSize: 11 }}>{currentZone.safety}</div>
+              </div>
+            </div>
           </div>
-          <div className="rounded-md p-5" style={{ border: "1px solid var(--hairline)", backgroundColor: "var(--surface-card)" }}>
-            <div className="flex items-center gap-2 mb-3"><Target size={16} style={{ color: "var(--primary)" }} /><span className="t-title-sm" style={{ color: "var(--ink)" }}>CTQ characteristics</span></div>
-            <p className="t-body-sm" style={{ color: "var(--body)" }}>Critical-to-Quality parameters carry the highest inspection rigour. A failed CTQ auto-creates an NCR, places the work order on hold, and sends the product to rework.</p>
-            <div className="mt-3 t-label t-num" style={{ color: "var(--muted)" }}>{ctqCount} CTQ PARAMETERS</div>
+        )}
+
+        {/* Filter and Search Bar for Stages */}
+        <div className="flex items-center justify-between gap-3 flex-wrap">
+          <div className="flex items-center gap-4 text-xs">
+            <span className="t-label font-bold" style={{ color: "var(--ink)" }}>SHOWING {displayedStages.length} STAGES</span>
+            <div className="flex items-center gap-1.5">
+              <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: "var(--primary)" }} />
+              <span className="t-label text-[11px]" style={{ color: "var(--muted)" }}>CTQ Parameter</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <div className="w-2.5 h-2.5 rounded-sm" style={{ border: "1.5px solid #dc2626" }} />
+              <span className="t-label text-[11px]" style={{ color: "var(--muted)" }}>Quality Gate</span>
+            </div>
           </div>
-          <div className="rounded-md p-5" style={{ border: "1px solid var(--hairline)", backgroundColor: "var(--surface-card)" }}>
-            <div className="flex items-center gap-2 mb-3"><FileText size={16} style={{ color: "var(--primary)" }} /><span className="t-title-sm" style={{ color: "var(--ink)" }}>Standards followed</span></div>
-            <p className="t-body-sm" style={{ color: "var(--body)" }}>QCI/Q/02/01 Rev.08 Control Plan governs all stages. WPS VAA/HTR/CS/WPS governs welding. ISO 9001, AWS D1.1, IEC 60076, IS 2062 referenced throughout.</p>
-            <div className="mt-3 t-label t-num" style={{ color: "var(--muted)" }}>QCI/Q/02/01 REV.08</div>
+          <div className="w-72">
+            <SearchInput value={stageSearch} onChange={setStageSearch} placeholder="Filter stages by name, code or SOP…" />
+          </div>
+        </div>
+
+        {/* Stages List (Smart Cards with Interconnected Actions) */}
+        <div className="space-y-3">
+          {displayedStages.map((stage) => {
+            const isExpanded = !!expandedStages[stage.code];
+            const qcParams = STAGE_QC_PARAMS[stage.code] || [];
+            const isMissingPdf = isDocMissingFromPdfAudit(stage.doc);
+
+            return (
+              <div
+                key={stage.code}
+                className="rounded-xl overflow-hidden transition-all"
+                style={{
+                  border: stage.isGate ? "1.5px solid rgba(220, 38, 38, 0.4)" : "1px solid var(--hairline)",
+                  backgroundColor: "var(--surface-card)",
+                }}
+              >
+                <div className="p-4 md:p-5 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                  <div className="flex items-start gap-3.5 min-w-0">
+                    <div
+                      className="w-10 h-10 rounded-xl flex items-center justify-center font-bold text-sm shrink-0"
+                      style={{
+                        backgroundColor: stage.isGate ? "#dc262615" : stage.isCTQ ? "rgba(8, 50, 96, 0.1)" : "var(--canvas-soft)",
+                        color: stage.isGate ? "#dc2626" : stage.isCTQ ? "var(--primary)" : "var(--muted)",
+                        border: stage.isGate ? "1.5px solid #dc2626" : "1px solid var(--hairline)",
+                      }}
+                    >
+                      {stage.code}
+                    </div>
+
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <h4 className="t-title-sm font-semibold" style={{ color: "var(--ink)" }}>{stage.name}</h4>
+                        {stage.isGate && (
+                          <span className="t-label px-2 py-0.5 rounded-full text-[9px] font-bold font-mono" style={{ backgroundColor: "#dc2626", color: "#fff" }}>
+                            QUALITY GATE
+                          </span>
+                        )}
+                        {stage.isCTQ && (
+                          <span className="t-label px-2 py-0.5 rounded-full text-[9px] font-bold font-mono" style={{ backgroundColor: "var(--primary)", color: "var(--on-primary)" }}>
+                            CTQ
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="flex items-center gap-3 flex-wrap mt-1 text-xs">
+                        <span style={{ color: "var(--body)" }}>{stage.dept}</span>
+                        <span style={{ color: "var(--muted)" }}>·</span>
+                        <span className="t-code font-mono" style={{ color: "var(--ink)" }}>{stage.doc}</span>
+                        <span style={{ color: "var(--muted)" }}>·</span>
+                        {isMissingPdf ? (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.2 rounded text-[10px] font-medium" style={{ backgroundColor: "rgba(217, 119, 6, 0.12)", color: "#d97706" }}>
+                            <AlertCircle size={10} /> Digital Form in HIVE (Physical PDF Missing in Audit)
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.2 rounded text-[10px] font-medium" style={{ backgroundColor: "rgba(74, 124, 94, 0.12)", color: "#4a7c5e" }}>
+                            <CheckCircle2 size={10} /> Controlled SOP PDF on Record
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Interconnected Action Buttons */}
+                  <div className="flex items-center gap-2 shrink-0 w-full md:w-auto justify-end flex-wrap">
+                    <Button
+                      size="sm"
+                      onClick={() => onInspect(stage.code)}
+                      className="t-body-sm h-8 px-3 rounded-lg flex items-center gap-1.5 font-medium shadow-sm hover:opacity-90"
+                      style={{ backgroundColor: "var(--primary)", color: "var(--on-primary)" }}
+                      title={`Launch digital inspection for stage ${stage.code}`}
+                    >
+                      <ClipboardCheck size={13} /> Inspect This Stage
+                    </Button>
+
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => onNavigate("workOrders")}
+                      className="t-body-sm h-8 px-2.5 rounded-lg flex items-center gap-1"
+                      style={{ borderColor: "var(--hairline)" }}
+                      title="View active shopfloor work orders"
+                    >
+                      <Boxes size={12} /> Work Orders
+                    </Button>
+
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => toggleStage(stage.code)}
+                      className="t-body-sm h-8 px-2.5 rounded-lg flex items-center gap-1"
+                      style={{ borderColor: "var(--hairline)" }}
+                    >
+                      <span>QC Checklist ({qcParams.length})</span>
+                      <ChevronDown size={13} style={{ transform: isExpanded ? "rotate(180deg)" : "none", transition: "transform 0.2s" }} />
+                    </Button>
+                  </div>
+                </div>
+
+                {/* Inline Collapsible QC Parameters Matrix */}
+                {isExpanded && (
+                  <div className="p-4 md:p-6 border-t space-y-4" style={{ borderColor: "var(--hairline-soft)", backgroundColor: "var(--canvas-soft)" }}>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <FileText size={15} style={{ color: "var(--primary)" }} />
+                        <span className="t-body-sm font-semibold" style={{ color: "var(--ink)" }}>Standard QC Checklist · {stage.doc}</span>
+                      </div>
+                      <span className="t-label text-[10.5px]" style={{ color: "var(--muted)" }}>{qcParams.length} MANDATORY PARAMETERS</span>
+                    </div>
+
+                    {qcParams.length > 0 ? (
+                      <div className="rounded-lg overflow-hidden" style={{ border: "1px solid var(--hairline)", backgroundColor: "var(--surface-card)" }}>
+                        <table className="w-full text-left" style={{ borderCollapse: "collapse" }}>
+                          <thead>
+                            <tr style={{ borderBottom: "1px solid var(--hairline)", backgroundColor: "var(--canvas-soft)" }}>
+                              <th className="t-label py-2.5 px-3 text-[10px]" style={{ color: "var(--muted)" }}>PARAMETER</th>
+                              <th className="t-label py-2.5 px-3 text-[10px]" style={{ color: "var(--muted)" }}>NOMINAL ACCEPTANCE CRITERIA</th>
+                              <th className="t-label py-2.5 px-3 text-[10px]" style={{ color: "var(--muted)" }}>MEASUREMENT INSTRUMENT</th>
+                              <th className="t-label py-2.5 px-3 text-center text-[10px]" style={{ color: "var(--muted)" }}>CTQ</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {qcParams.map((p, idx) => (
+                              <tr key={idx} style={{ borderBottom: idx === qcParams.length - 1 ? "none" : "1px solid var(--hairline-soft)" }}>
+                                <td className="py-2 px-3 t-body-sm font-medium" style={{ color: "var(--ink)" }}>{p.param}</td>
+                                <td className="py-2 px-3 t-code text-xs font-semibold" style={{ color: "var(--body)" }}>{p.spec}</td>
+                                <td className="py-2 px-3 t-body-sm text-xs" style={{ color: "var(--muted)" }}>{p.method}</td>
+                                <td className="py-2 px-3 text-center">
+                                  {p.ctq ? (
+                                    <span className="t-label px-1.5 py-0.2 rounded font-bold font-mono text-[9px]" style={{ backgroundColor: "rgba(8, 50, 96, 0.12)", color: "var(--primary)" }}>
+                                      CTQ
+                                    </span>
+                                  ) : (
+                                    <span style={{ color: "var(--muted-soft)" }}>-</span>
+                                  )}
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    ) : (
+                      <div className="rounded-lg p-4 text-center" style={{ backgroundColor: "var(--surface-card)", border: "1px solid var(--hairline)" }}>
+                        <p className="t-body-sm" style={{ color: "var(--muted)" }}>General workmanship criteria applied per QCI/Q/02/01 Rev.08. Click Inspect to record visual & dimensional characteristics.</p>
+                      </div>
+                    )}
+
+                    {/* Reaction Plan */}
+                    <div className="rounded-lg p-3 flex items-start gap-2.5" style={{ backgroundColor: "#fef2f2", border: "1px solid rgba(220, 38, 38, 0.2)" }}>
+                      <AlertTriangle size={15} className="shrink-0 mt-0.5" style={{ color: "#dc2626" }} />
+                      <div className="t-label text-[11px]" style={{ color: "#dc2626" }}>
+                        <strong>REACTION PLAN (MANDATORY):</strong> Any failed measurement or out-of-tolerance reading immediately triggers an automated Non-Conformance Report (NCR), holds progression to downstream stations, and routes the unit to rework inspection.
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Master Standards & Governance Summary Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4">
+          <div className="rounded-xl p-5 space-y-2" style={{ border: "1px solid var(--hairline)", backgroundColor: "var(--surface-card)" }}>
+            <div className="flex items-center gap-2" style={{ color: "#dc2626" }}>
+              <ShieldCheck size={18} />
+              <h4 className="t-title-sm font-semibold">9 Mandatory Quality Gates</h4>
+            </div>
+            <p className="t-body-sm text-xs" style={{ color: "var(--body)" }}>
+              Gates at Header Pretreatment, Assembly Erection, Hydrostatic Pressure (2.0 bar), Pre-Galvanizing, Final HDG, and Final Dispatch strictly block progression unless 100% conforming.
+            </p>
+          </div>
+
+          <div className="rounded-xl p-5 space-y-2" style={{ border: "1px solid var(--hairline)", backgroundColor: "var(--surface-card)" }}>
+            <div className="flex items-center gap-2" style={{ color: "var(--primary)" }}>
+              <Target size={18} />
+              <h4 className="t-title-sm font-semibold">14 Critical-to-Quality (CTQ) Parameters</h4>
+            </div>
+            <p className="t-body-sm text-xs" style={{ color: "var(--body)" }}>
+              Welding current, nugget diameter, center-to-center pitch, pressure hold, coating DFT, and inert N2 pressure carry highest inspection rigour with zero deviation tolerance.
+            </p>
+          </div>
+
+          <div className="rounded-xl p-5 space-y-2" style={{ border: "1px solid var(--hairline)", backgroundColor: "var(--surface-card)" }}>
+            <div className="flex items-center gap-2" style={{ color: "#4a7c5e" }}>
+              <FileText size={18} />
+              <h4 className="t-title-sm font-semibold">ISO 9001:2015 & Master Control Plan</h4>
+            </div>
+            <p className="t-body-sm text-xs" style={{ color: "var(--body)" }}>
+              Governed by QCI/Q/02/01 Rev.08 Control Plan, WPS VAA/HTR/CS/WPS, ISO 1461 galvanizing, and ISO 12944 paint specifications for complete customer compliance.
+            </p>
           </div>
         </div>
       </div>
