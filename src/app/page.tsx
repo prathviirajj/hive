@@ -70,6 +70,10 @@ import {
   SalesOrderFullProfilePage,
   SystemAuditLogsModule,
 } from "@/components/qms/work-order-full-profile";
+import {
+  StandardizedReportsCard,
+  StageWiseReportsModule,
+} from "@/components/qms/stage-inspection-reports";
 import masterStageCharacteristics from "@/lib/master-stage-characteristics.json";
 
 // ============================================================
@@ -77,7 +81,7 @@ import masterStageCharacteristics from "@/lib/master-stage-characteristics.json"
 // ============================================================
 type ModuleKey =
   | "dashboard" | "workorders" | "salesorders" | "inspection" | "ncr" | "fmea"
- | "traceability" | "standards" | "processflow" | "analytics"
+  | "traceability" | "standards" | "processflow" | "analytics"
   | "audit" | "copq" | "mis" | "investigation" | "rca" | "comparison"
   | "doceditor" | "users" | "import" | "export" | "reports"
   | "rework" | "organization";
@@ -95,7 +99,7 @@ type Role =
 // notice if one is ever requested directly.
 const HIDDEN_MODULES: ModuleKey[] = [
   "rca", "fmea",                                      // RCA Workspace + FMEA & Risk
-  "analytics", "investigation", "comparison", "copq", // Intelligence group
+  "investigation", "comparison", "copq", // Intelligence group
   "doceditor", "standards", "traceability", "mis", // Governance group
 ];
 const isHidden = (k: ModuleKey) => HIDDEN_MODULES.includes(k);
@@ -108,17 +112,17 @@ const isHidden = (k: ModuleKey) => HIDDEN_MODULES.includes(k);
 const _RAW_ACCESS: Record<Role, ModuleKey[]> = {
   Admin: ["dashboard", "workorders", "salesorders", "inspection", "ncr", "fmea", "traceability", "standards", "processflow", "analytics", "audit", "copq", "mis", "investigation", "rca", "comparison", "doceditor", "users", "import", "export", "reports", "rework", "organization"],
   CEO: ["dashboard", "processflow", "workorders", "salesorders", "inspection", "ncr", "fmea", "reports", "rework", "organization", "users", "audit"],
-  QualityManager: ["dashboard", "workorders", "salesorders", "inspection", "ncr", "fmea", "traceability", "standards", "processflow", "analytics", "audit", "copq", "mis", "investigation", "rca", "comparison", "doceditor", "users", "reports", "rework", "organization"],
-  AssistantManager: ["dashboard", "inspection", "ncr", "fmea", "traceability", "standards", "processflow", "analytics", "audit", "copq", "investigation", "rca", "comparison", "reports", "rework"],
-  ProductionSupervisor: ["dashboard", "workorders", "salesorders", "inspection", "ncr", "traceability", "processflow", "analytics", "copq", "comparison", "rework"],
+  QualityManager: ["dashboard", "workorders", "salesorders", "inspection", "ncr", "fmea", "traceability", "standards", "processflow", "audit", "copq", "mis", "investigation", "rca", "comparison", "doceditor", "users", "reports", "rework", "organization"],
+  AssistantManager: ["dashboard", "inspection", "ncr", "fmea", "traceability", "standards", "processflow", "audit", "copq", "investigation", "rca", "comparison", "reports", "rework"],
+  ProductionSupervisor: ["dashboard", "workorders", "salesorders", "inspection", "ncr", "traceability", "processflow", "copq", "comparison", "rework"],
   QCInspector: ["dashboard", "inspection", "ncr", "traceability", "processflow", "rework"],
   Operator: ["dashboard", "inspection", "processflow", "rework"],
-  Auditor: ["dashboard", "traceability", "standards", "analytics", "audit", "investigation", "rca", "comparison", "reports", "rework"],
-  DocumentController: ["dashboard", "standards", "analytics", "doceditor", "reports"],
-  ProcessEngineer: ["dashboard", "workorders", "salesorders", "inspection", "ncr", "fmea", "traceability", "standards", "processflow", "analytics", "audit", "copq", "investigation", "rca", "comparison", "doceditor", "reports", "rework"],
+  Auditor: ["dashboard", "traceability", "standards", "audit", "investigation", "rca", "comparison", "reports", "rework"],
+  DocumentController: ["dashboard", "standards", "doceditor", "reports"],
+  ProcessEngineer: ["dashboard", "workorders", "salesorders", "inspection", "ncr", "fmea", "traceability", "standards", "processflow", "audit", "copq", "investigation", "rca", "comparison", "doceditor", "reports", "rework"],
   MaintenanceCalibration: ["dashboard", "standards", "rework"],
-  IncomingQuality: ["dashboard", "workorders", "salesorders", "traceability", "standards", "analytics", "inspection", "rework"],
-  ReportViewer: ["dashboard", "salesorders", "standards", "analytics", "mis", "comparison", "reports", "rework"],
+  IncomingQuality: ["dashboard", "workorders", "salesorders", "traceability", "standards", "inspection", "rework"],
+  ReportViewer: ["dashboard", "salesorders", "standards", "mis", "comparison", "reports", "rework"],
   // --- New roles (added per user request) ---
   Director: ["dashboard", "processflow", "workorders", "salesorders", "inspection", "ncr", "fmea", "reports", "rework", "organization", "users", "audit"],
   IT: ["dashboard", "workorders", "salesorders", "inspection", "ncr", "fmea", "processflow", "users", "import", "export", "reports", "rework", "organization"],
@@ -135,6 +139,9 @@ const ROLE_MODULE_ACCESS: Record<Role, ModuleKey[]> = Object.fromEntries(
 ) as Record<Role, ModuleKey[]>;
 
 function hasModule(role: string, key: ModuleKey): boolean {
+  if (key === "analytics") {
+    return role === "Admin";
+  }
   const allowed = ROLE_MODULE_ACCESS[role as Role] || [];
   return allowed.includes(key);
 }
@@ -156,8 +163,9 @@ const NAV_GROUPS: { label: string; items: { key: ModuleKey; label: string; icon:
     { key: "ncr", label: "Nonconformance", icon: AlertTriangle, desc: "CAPA workflow" },
     { key: "rework", label: "Rework Jobs", icon: Repeat, desc: "Defect → rework → verify" },
   ]},
-  // RCA Workspace, Intelligence, and Governance groups are intentionally
-  // hidden while those features are under construction.
+  { label: "Intelligence", items: [
+    { key: "analytics", label: "Analytics", icon: BarChart3, desc: "Quality & SPC intelligence" },
+  ]},
   { label: "Administration", items: [
     { key: "users", label: "User Management", icon: Users, desc: "Accounts & roles" },
     { key: "organization", label: "Organization", icon: NetworkIcon, desc: "Hierarchy & vacancies" },
@@ -810,7 +818,23 @@ function ModuleRouter({ active, plant, plantInfo, user, onNavigate, prefillStage
     case "doceditor": return <DocumentEditorModule user={user} />;
     case "standards": return <StandardsModule />;
     case "traceability": return <TraceabilityModule plant={plant} />;
-    case "analytics": return <AdvancedAnalyticsModule plant={plant} />;
+    case "analytics":
+      if (user.role !== "Admin") {
+        return (
+          <div className="p-8 text-center space-y-4 max-w-md mx-auto my-12 bg-[var(--surface-card)] rounded-2xl border border-[var(--hairline)]">
+            <div className="w-12 h-12 rounded-full bg-amber-500/10 text-amber-600 flex items-center justify-center mx-auto">
+              <ShieldAlert size={24} />
+            </div>
+            <div>
+              <h2 className="text-lg font-bold text-ink">Access Restricted</h2>
+              <p className="text-xs text-muted mt-1">
+                Quality & SPC Analytics is strictly reserved for System Administrators. Other roles do not have authorization to view this module.
+              </p>
+            </div>
+          </div>
+        );
+      }
+      return <AdvancedAnalyticsModule plant={plant} />;
     case "audit": return <SystemAuditLogsModule user={user} plant={plant} />;
     case "copq": return <CopqModule plant={plant} />;
     case "mis": return <MisModule plant={plant} user={user} />;
@@ -5116,113 +5140,15 @@ function InspectionDetail({ record, onClose }: { record: any; onClose?: () => vo
         {/* ============================================================ */}
         {/* STANDARDIZED REPORT & COMPLIANCE DOWNLOAD CENTER */}
         {/* ============================================================ */}
-        <div className="rounded-xl p-4 space-y-3" style={{ backgroundColor: "var(--surface-card)", border: "1.5px solid rgba(8, 50, 96, 0.2)" }}>
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Download size={16} style={{ color: "var(--primary)" }} />
-              <div>
-                <span className="t-body-sm font-semibold" style={{ color: "var(--ink)" }}>Standardized Inspection Reports & Downloads</span>
-                <span className="t-label text-[10px] ml-2 px-1.5 py-0.2 rounded font-mono" style={{ backgroundColor: "rgba(8, 50, 96, 0.08)", color: "var(--primary)" }}>
-                  ISO 9001 / IATF 16949 COMPLIANT
-                </span>
-              </div>
-            </div>
-            <InfoTooltip text="Download signed stage inspection certificates, tabular Excel spreadsheets, or tamper-proof digital audit files." position="left" />
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-2.5 pt-1">
-            {/* Format 1: Official Certificate */}
-            <div className="p-3 rounded-lg flex flex-col justify-between" style={{ backgroundColor: "var(--canvas-soft)", border: "1px solid var(--hairline)" }}>
-              <div>
-                <div className="flex items-center justify-between">
-                  <span className="t-code text-[11px] font-bold" style={{ color: "var(--primary)" }}>FORMAT 1 · PDF / PRINT</span>
-                  <span className="text-[9px] px-1.5 py-0.2 rounded font-semibold" style={{ backgroundColor: "rgba(74, 124, 94, 0.12)", color: "#4a7c5e" }}>OFFICIAL COC</span>
-                </div>
-                <div className="t-body-sm font-semibold mt-1" style={{ color: "var(--ink)" }}>Inspection Certificate</div>
-                <div className="t-label text-[10.5px] mt-1" style={{ color: "var(--muted)" }}>
-                  Official release certificate with company letterhead, 4-tier crew signatures, parameter matrix, and SHA-256 seal.
-                </div>
-              </div>
-              <div className="flex items-center gap-1.5 mt-3 pt-2 border-t" style={{ borderColor: "var(--hairline)" }}>
-                <Button
-                  size="sm"
-                  onClick={() => printInspectionCertificate(record, signoff, measurements)}
-                  data-tooltip="Open printable preview formatted for A4 sheet or Save as PDF"
-                  data-tooltip-pos="top"
-                  className="h-7 px-2.5 text-xs rounded-md flex-1 flex items-center justify-center gap-1.5"
-                  style={{ backgroundColor: "var(--primary)", color: "var(--on-primary)" }}
-                >
-                  <Printer size={12} /> Print / Save PDF
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => downloadInspectionCertificateHtml(record, signoff, measurements)}
-                  data-tooltip="Download standalone HTML certificate file"
-                  data-tooltip-pos="top"
-                  className="h-7 px-2 text-xs rounded-md"
-                  style={{ borderColor: "var(--hairline)" }}
-                >
-                  <FileDown size={12} />
-                </Button>
-              </div>
-            </div>
-
-            {/* Format 2: CSV Tabular Parameter Log */}
-            <div className="p-3 rounded-lg flex flex-col justify-between" style={{ backgroundColor: "var(--canvas-soft)", border: "1px solid var(--hairline)" }}>
-              <div>
-                <div className="flex items-center justify-between">
-                  <span className="t-code text-[11px] font-bold" style={{ color: "#4a7c5e" }}>FORMAT 2 · CSV DATA</span>
-                  <span className="text-[9px] px-1.5 py-0.2 rounded font-semibold" style={{ backgroundColor: "var(--surface-strong)", color: "var(--ink)" }}>EXCEL / SPC</span>
-                </div>
-                <div className="t-body-sm font-semibold mt-1" style={{ color: "var(--ink)" }}>Tabular Tolerances (CSV)</div>
-                <div className="t-label text-[10.5px] mt-1" style={{ color: "var(--muted)" }}>
-                  Raw measured dimensions, nominal specifications, upper/lower tolerances, and operator crew for Excel/Minitab analysis.
-                </div>
-              </div>
-              <div className="mt-3 pt-2 border-t" style={{ borderColor: "var(--hairline)" }}>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => downloadInspectionCsv(record, signoff, measurements)}
-                  data-tooltip="Download tabular parameter measurements as RFC 4180 CSV"
-                  data-tooltip-pos="top"
-                  className="h-7 px-3 text-xs rounded-md w-full flex items-center justify-center gap-1.5"
-                  style={{ borderColor: "var(--hairline)", color: "var(--ink)" }}
-                >
-                  <FileSpreadsheet size={12} style={{ color: "#4a7c5e" }} /> Download CSV
-                </Button>
-              </div>
-            </div>
-
-            {/* Format 3: Digital Audit Package */}
-            <div className="p-3 rounded-lg flex flex-col justify-between" style={{ backgroundColor: "var(--canvas-soft)", border: "1px solid var(--hairline)" }}>
-              <div>
-                <div className="flex items-center justify-between">
-                  <span className="t-code text-[11px] font-bold" style={{ color: "#d97706" }}>FORMAT 3 · AUDIT JSON</span>
-                  <span className="text-[9px] px-1.5 py-0.2 rounded font-semibold" style={{ backgroundColor: "rgba(217, 119, 6, 0.12)", color: "#d97706" }}>IMMUTABLE</span>
-                </div>
-                <div className="t-body-sm font-semibold mt-1" style={{ color: "var(--ink)" }}>Digital Audit Package</div>
-                <div className="t-label text-[10.5px] mt-1" style={{ color: "var(--muted)" }}>
-                  Cryptographic machine-readable JSON v4 with timestamps, user session tokens, measurements tree, and audit hash.
-                </div>
-              </div>
-              <div className="mt-3 pt-2 border-t" style={{ borderColor: "var(--hairline)" }}>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => downloadInspectionJson(record, signoff, measurements)}
-                  data-tooltip="Download cryptographic JSON audit file for compliance record-keeping"
-                  data-tooltip-pos="top"
-                  className="h-7 px-3 text-xs rounded-md w-full flex items-center justify-center gap-1.5"
-                  style={{ borderColor: "var(--hairline)", color: "var(--ink)" }}
-                >
-                  <FileJson size={12} style={{ color: "#d97706" }} /> Download JSON
-                </Button>
-              </div>
-            </div>
-          </div>
-        </div>
+        <StandardizedReportsCard
+          record={record}
+          signoff={signoff}
+          measurements={measurements}
+          onPrintCurrent={() => printInspectionCertificate(record, signoff, measurements)}
+          onDownloadCurrentCsv={() => downloadInspectionCsv(record, signoff, measurements)}
+          onDownloadCurrentJson={() => downloadInspectionJson(record, signoff, measurements)}
+          onDownloadCurrentHtml={() => downloadInspectionCertificateHtml(record, signoff, measurements)}
+        />
 
         {/* Core Metadata Grid with Tooltips */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 p-3.5 rounded-xl" style={{ backgroundColor: "var(--canvas-soft)", border: "1px solid var(--hairline)" }}>
@@ -7753,6 +7679,7 @@ function ExportModule({ plant }: { plant: string }) {
 // Reports Module
 // ============================================================
 function ReportsModule({ plant }: { plant: string }) {
+  const [activeReportsTab, setActiveReportsTab] = useState<"stages" | "templates">("stages");
   const [selectedReport, setSelectedReport] = useState<string | null>(null);
   const [reportData, setReportData] = useState<any>(null);
 
@@ -7788,7 +7715,6 @@ function ReportsModule({ plant }: { plant: string }) {
       const d = await fetch(`/api/traceability?plant=${plant}`).then(r => r.json());
       setReportData({ genealogies: d.genealogies || [] });
     } else if (key === "calibration" || key === "supplier-quality" || key === "audit-findings" || key === "doc-revision") {
-      // These reports use sample/static data for now
       setReportData({ static: true, type: key });
     }
   };
@@ -7805,49 +7731,97 @@ function ReportsModule({ plant }: { plant: string }) {
   return (
     <div className="reveal-up">
       <PageHeader
-        eyebrow="Reporting"
-        title="Reports"
-        subtitle="14 printable report templates across 7 categories. Every report uses the Hi-Tech Radiators ReportHeader with Hi-Tech logo, document ID, and traceable metadata. Use browser print to save as PDF."
+        eyebrow="Reporting Center"
+        title="Inspection Reports & Compliance Center"
+        subtitle="Download shopfloor stage inspection checksheets (S01–S17) and 14 management compliance templates matching Hi-Tech Radiators controlled QAP documentation."
         helpId="reports.overview"
         meta={
           <>
-            <span className="t-label t-num" style={{ color: "var(--muted)" }}>{reports.length} TEMPLATES</span>
+            <span className="t-label t-num" style={{ color: "var(--muted)" }}>17 STAGE FORMATS</span>
             <span className="t-label" style={{ color: "var(--muted)" }}>·</span>
-            <span className="t-label t-num" style={{ color: "var(--muted)" }}>{Object.keys(groupedReports).length} CATEGORIES</span>
+            <span className="t-label t-num" style={{ color: "var(--muted)" }}>{reports.length} TEMPLATES</span>
           </>
         }
       />
+
       <div className="p-5 md:p-10 space-y-6">
-        {Object.entries(groupedReports).map(([category, catReports]) => (
-          <div key={category}>
-            <SectionHeader number={String(Object.keys(groupedReports).indexOf(category) + 1).padStart(2, "0")} title={category} subtitle={`${catReports.length} report template${catReports.length > 1 ? "s" : ""}`} />
-            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
-              {catReports.map((r) => {
-                const Icon = r.icon;
-                const active = selectedReport === r.key;
-                return (
-                  <button
-                    key={r.key}
-                    onClick={() => generateReport(r.key)}
-                    className="flex items-start gap-3 text-left p-4 rounded-md transition-colors hover:bg-[var(--canvas-soft)]"
-                    style={{
-                      border: `1px solid ${active ? "var(--primary)" : "var(--hairline)"}`,
-                      backgroundColor: active ? "var(--canvas-soft)" : "var(--surface-card)",
-                    }}
-                  >
-                    <div className="w-9 h-9 rounded-md flex items-center justify-center shrink-0" style={{ backgroundColor: active ? "var(--primary)" : "var(--canvas-soft)" }}>
-                      <Icon size={16} style={{ color: active ? "var(--on-primary)" : "var(--ink)" }} />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <div className="t-body-sm font-medium" style={{ color: "var(--ink)" }}>{r.label}</div>
-                      <div className="t-label mt-1" style={{ color: "var(--muted)" }}>{r.desc}</div>
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
+        {/* Modern Tab Selector */}
+        <div className="flex items-center gap-2 border-b border-[var(--hairline)] pb-3">
+          <button
+            onClick={() => setActiveReportsTab("stages")}
+            className={cn(
+              "px-4 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-2",
+              activeReportsTab === "stages"
+                ? "bg-primary text-on-primary shadow-xs"
+                : "text-muted hover:text-ink bg-[var(--surface-card)] border border-[var(--hairline)]"
+            )}
+          >
+            <Layers size={14} />
+            <span>1. Stage Manufacturing Reports (S01–S17)</span>
+            <span className={cn(
+              "text-[10px] py-0.2 px-1.5 rounded-full font-mono font-bold",
+              activeReportsTab === "stages" ? "bg-white/20 text-white" : "bg-[var(--surface-strong)] text-muted"
+            )}>
+              17 Stages
+            </span>
+          </button>
+
+          <button
+            onClick={() => setActiveReportsTab("templates")}
+            className={cn(
+              "px-4 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-2",
+              activeReportsTab === "templates"
+                ? "bg-primary text-on-primary shadow-xs"
+                : "text-muted hover:text-ink bg-[var(--surface-card)] border border-[var(--hairline)]"
+            )}
+          >
+            <FileBarChart size={14} />
+            <span>2. Quality & Compliance Templates</span>
+            <span className={cn(
+              "text-[10px] py-0.2 px-1.5 rounded-full font-mono font-bold",
+              activeReportsTab === "templates" ? "bg-white/20 text-white" : "bg-[var(--surface-strong)] text-muted"
+            )}>
+              14 Formats
+            </span>
+          </button>
+        </div>
+
+        {activeReportsTab === "stages" ? (
+          <StageWiseReportsModule plant={plant} />
+        ) : (
+          <div className="space-y-6">
+            {Object.entries(groupedReports).map(([category, catReports]) => (
+              <div key={category}>
+                <SectionHeader number={String(Object.keys(groupedReports).indexOf(category) + 1).padStart(2, "0")} title={category} subtitle={`${catReports.length} report template${catReports.length > 1 ? "s" : ""}`} />
+                <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                  {catReports.map((r) => {
+                    const Icon = r.icon;
+                    const active = selectedReport === r.key;
+                    return (
+                      <button
+                        key={r.key}
+                        onClick={() => generateReport(r.key)}
+                        className="flex items-start gap-3 text-left p-4 rounded-md transition-colors hover:bg-[var(--canvas-soft)]"
+                        style={{
+                          border: `1px solid ${active ? "var(--primary)" : "var(--hairline)"}`,
+                          backgroundColor: active ? "var(--canvas-soft)" : "var(--surface-card)",
+                        }}
+                      >
+                        <div className="w-9 h-9 rounded-md flex items-center justify-center shrink-0" style={{ backgroundColor: active ? "var(--primary)" : "var(--canvas-soft)" }}>
+                          <Icon size={16} style={{ color: active ? "var(--on-primary)" : "var(--ink)" }} />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <div className="t-body-sm font-medium" style={{ color: "var(--ink)" }}>{r.label}</div>
+                          <div className="t-label mt-1" style={{ color: "var(--muted)" }}>{r.desc}</div>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
           </div>
-        ))}
+        )}
 
         {/* Report opens in a drawer (Sheet) instead of at the bottom */}
         <Sheet open={!!selectedReport && !!reportData} onOpenChange={(open) => { if (!open) { setSelectedReport(null); setReportData(null); } }}>
