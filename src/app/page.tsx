@@ -65,6 +65,11 @@ import {
 import {
   AdvancedAnalyticsModule, DocumentEditorModule,
 } from "@/components/qms/advanced-analytics";
+import {
+  WorkOrderFullProfilePage,
+  SalesOrderFullProfilePage,
+  SystemAuditLogsModule,
+} from "@/components/qms/work-order-full-profile";
 import masterStageCharacteristics from "@/lib/master-stage-characteristics.json";
 
 // ============================================================
@@ -91,7 +96,7 @@ type Role =
 const HIDDEN_MODULES: ModuleKey[] = [
   "rca", "fmea",                                      // RCA Workspace + FMEA & Risk
   "analytics", "investigation", "comparison", "copq", // Intelligence group
-  "doceditor", "standards", "audit", "traceability", "mis", // Governance group
+  "doceditor", "standards", "traceability", "mis", // Governance group
 ];
 const isHidden = (k: ModuleKey) => HIDDEN_MODULES.includes(k);
 
@@ -102,7 +107,7 @@ const isHidden = (k: ModuleKey) => HIDDEN_MODULES.includes(k);
 // nobody - not even Admin - can reach an unfinished feature through the UI.
 const _RAW_ACCESS: Record<Role, ModuleKey[]> = {
   Admin: ["dashboard", "workorders", "salesorders", "inspection", "ncr", "fmea", "traceability", "standards", "processflow", "analytics", "audit", "copq", "mis", "investigation", "rca", "comparison", "doceditor", "users", "import", "export", "reports", "rework", "organization"],
-  CEO: ["dashboard", "processflow", "workorders", "salesorders", "inspection", "ncr", "fmea", "reports", "rework", "organization", "users"],
+  CEO: ["dashboard", "processflow", "workorders", "salesorders", "inspection", "ncr", "fmea", "reports", "rework", "organization", "users", "audit"],
   QualityManager: ["dashboard", "workorders", "salesorders", "inspection", "ncr", "fmea", "traceability", "standards", "processflow", "analytics", "audit", "copq", "mis", "investigation", "rca", "comparison", "doceditor", "users", "reports", "rework", "organization"],
   AssistantManager: ["dashboard", "inspection", "ncr", "fmea", "traceability", "standards", "processflow", "analytics", "audit", "copq", "investigation", "rca", "comparison", "reports", "rework"],
   ProductionSupervisor: ["dashboard", "workorders", "salesorders", "inspection", "ncr", "traceability", "processflow", "analytics", "copq", "comparison", "rework"],
@@ -115,10 +120,10 @@ const _RAW_ACCESS: Record<Role, ModuleKey[]> = {
   IncomingQuality: ["dashboard", "workorders", "salesorders", "traceability", "standards", "analytics", "inspection", "rework"],
   ReportViewer: ["dashboard", "salesorders", "standards", "analytics", "mis", "comparison", "reports", "rework"],
   // --- New roles (added per user request) ---
-  Director: ["dashboard", "processflow", "workorders", "salesorders", "inspection", "ncr", "fmea", "reports", "rework", "organization"],
+  Director: ["dashboard", "processflow", "workorders", "salesorders", "inspection", "ncr", "fmea", "reports", "rework", "organization", "users", "audit"],
   IT: ["dashboard", "workorders", "salesorders", "inspection", "ncr", "fmea", "processflow", "users", "import", "export", "reports", "rework", "organization"],
-  PlantManager: ["dashboard", "processflow", "workorders", "salesorders", "inspection", "ncr", "fmea", "reports", "rework", "organization"],
-  DGM: ["dashboard", "processflow", "workorders", "salesorders", "inspection", "ncr", "fmea", "reports", "rework", "organization"],
+  PlantManager: ["dashboard", "processflow", "workorders", "salesorders", "inspection", "ncr", "fmea", "reports", "rework", "organization", "users", "audit"],
+  DGM: ["dashboard", "processflow", "workorders", "salesorders", "inspection", "ncr", "fmea", "reports", "rework", "organization", "users", "audit"],
   LineManager: ["dashboard", "processflow", "workorders", "inspection", "ncr", "rework"],
 };
 
@@ -156,6 +161,7 @@ const NAV_GROUPS: { label: string; items: { key: ModuleKey; label: string; icon:
   { label: "Administration", items: [
     { key: "users", label: "User Management", icon: Users, desc: "Accounts & roles" },
     { key: "organization", label: "Organization", icon: NetworkIcon, desc: "Hierarchy & vacancies" },
+    { key: "audit", label: "Audit Logs", icon: ShieldAlert, desc: "Security, tamper & change trail" },
     { key: "import", label: "Import", icon: Upload, desc: "Upload data" },
     { key: "export", label: "Export", icon: Download, desc: "Download data" },
     { key: "reports", label: "Reports", icon: FileBarChart, desc: "Printable" },
@@ -186,6 +192,32 @@ const K2_STAGES = [
 const ROLE_OPTIONS: Role[] = ["Admin", "CEO", "Director", "IT", "PlantManager", "DGM", "QualityManager", "AssistantManager", "LineManager", "ProductionSupervisor", "QCInspector", "Operator", "Auditor", "DocumentController", "ProcessEngineer", "MaintenanceCalibration", "IncomingQuality", "ReportViewer"];
 
 // Human-readable label for each role code (used in dropdowns, badges, user mgmt)
+
+// ============================================================
+// ISO 9001:2015 Clause 5.3 - Organizational Roles, Responsibilities & Authorities
+// Strict Hierarchical RBAC Authority Levels
+// ============================================================
+const ROLE_HIERARCHY_LEVELS: Record<Role, number> = {
+  CEO: 100,
+  Director: 90,
+  DGM: 85,
+  PlantManager: 80,
+  Admin: 75,
+  QualityManager: 70,
+  LineManager: 65,
+  AssistantManager: 60,
+  ProductionSupervisor: 50,
+  ProcessEngineer: 45,
+  Auditor: 45,
+  QCInspector: 40,
+  IncomingQuality: 35,
+  MaintenanceCalibration: 30,
+  DocumentController: 30,
+  Operator: 20,
+  ReportViewer: 10,
+  IT: 75,
+};
+
 const ROLE_LABELS: Record<string, string> = {
   Admin: "System Administrator",
   CEO: "Chief Executive Officer (CEO)",
@@ -770,16 +802,16 @@ function ModuleRouter({ active, plant, plantInfo, user, onNavigate, prefillStage
   switch (active) {
     case "dashboard": return <DashboardModule plant={plant} plantInfo={plantInfo} user={user} onNavigate={onNavigate} onStartInspection={onStartInspection} />;
     case "processflow": return <ProcessFlowModule plant={plant} plantInfo={plantInfo} user={user} onNavigate={onNavigate} onInspect={onInspect || (() => {})} />;
-    case "workorders": return <WorkOrdersModule plant={plant} />;
-    case "salesorders": return <SalesOrdersModule plant={plant} />;
-    case "inspection": return <InspectionModule plant={plant} user={user} prefillStage={prefillStage} onPrefillConsumed={() => onInspect(null)} />;
+    case "workorders": return <WorkOrdersModule plant={plant} user={user} onNavigate={onNavigate} onInspect={onInspect} />;
+    case "salesorders": return <SalesOrdersModule plant={plant} user={user} onNavigate={onNavigate} onInspect={onInspect} />;
+    case "inspection": return <InspectionModule plant={plant} user={user} prefillStage={prefillStage} onPrefillConsumed={() => onInspect?.(null)} />;
     case "ncr": return <NcrModule plant={plant} user={user} />;
     case "fmea": return <FmeaModule />;
     case "doceditor": return <DocumentEditorModule user={user} />;
     case "standards": return <StandardsModule />;
     case "traceability": return <TraceabilityModule plant={plant} />;
     case "analytics": return <AdvancedAnalyticsModule plant={plant} />;
-    case "audit": return <AuditWorkspaceModule plant={plant} user={user} />;
+    case "audit": return <SystemAuditLogsModule user={user} plant={plant} />;
     case "copq": return <CopqModule plant={plant} />;
     case "mis": return <MisModule plant={plant} user={user} />;
     case "investigation": return <InvestigationModule plant={plant} />;
@@ -1773,7 +1805,7 @@ function ParetoChart({ data }: { data: { defect: string; count: number; cumPct: 
 // ============================================================
 // Work Orders Module
 // ============================================================
-function WorkOrdersModule({ plant }: { plant: string }) {
+function WorkOrdersModule({ plant, user, onNavigate, onInspect }: { plant: string; user?: User; onNavigate?: (k: ModuleKey) => void; onInspect?: (stageCode: string | null) => void }) {
   const [workOrders, setWorkOrders] = useState<any[]>([]);
   const [statusFilter, setStatusFilter] = useState("all");
   const [loading, setLoading] = useState(true);
@@ -1842,6 +1874,22 @@ function WorkOrdersModule({ plant }: { plant: string }) {
     ), hideOnMobile: true },
   ];
 
+  if (selected) {
+    return (
+      <WorkOrderFullProfilePage
+        wo={selected}
+        user={user || ({ name: "Quality Manager", role: "QualityManager", username: "quality.mgr", email: "qm@hitech.com", plant: "K2" } as User)}
+        plant={plant}
+        onBack={() => setSelected(null)}
+        onNavigateToInspect={(stg) => {
+          setSelected(null);
+          if (onInspect) onInspect(stg);
+          if (onNavigate) onNavigate("inspection");
+        }}
+      />
+    );
+  }
+
   return (
     <div className="reveal-up">
       <PageHeader
@@ -1903,11 +1951,7 @@ function WorkOrdersModule({ plant }: { plant: string }) {
         )}
       </div>
 
-      <Sheet open={!!selected} onOpenChange={(o) => !o && setSelected(null)}>
-        <SheetContent className="w-full md:w-[60vw] md:max-w-[1000px] p-0 overflow-y-auto" style={{ backgroundColor: "var(--surface-card)" }}>
-          {selected && <WorkOrderDetail wo={selected} plant={plant} onClose={() => setSelected(null)} />}
-        </SheetContent>
-      </Sheet>
+      {/* Work Order Profile renders as independent full page (No Drawer) */}
 
       <Sheet open={showCreate} onOpenChange={setShowCreate}>
         <SheetContent className="w-full md:w-[55vw] md:max-w-[900px] p-0 overflow-y-auto" style={{ backgroundColor: "var(--surface-card)" }}>
@@ -2830,6 +2874,14 @@ function NumberField({ label, value, onChange }: { label: string; value: number;
 // Inspection Module - smarter forms (user-aware)
 // ============================================================
 function InspectionModule({ plant, user, prefillStage, onPrefillConsumed }: { plant: string; user: User; prefillStage?: string | null; onPrefillConsumed?: () => void }) {
+  const [recentlyClearedStage, setRecentlyClearedStage] = useState<{
+    stageCode: string;
+    stageName: string;
+    nextStageCode: string;
+    nextStageName: string;
+    woNumber: string;
+    htuNo: string;
+  } | null>(null);
   const [records, setRecords] = useState<any[]>([]);
   const [stages, setStages] = useState<any[]>([]);
   const [workOrders, setWorkOrders] = useState<any[]>([]);
@@ -2947,6 +2999,44 @@ function InspectionModule({ plant, user, prefillStage, onPrefillConsumed }: { pl
           </div>
         }
       />
+            {/* Sequential Stage Clearance & Next Stage Hand-off Banner */}
+      {recentlyClearedStage && (
+        <div className="rounded-xl p-4 mx-4 md:mx-8 mb-4 flex items-center justify-between flex-wrap gap-3 animate-in fade-in" style={{ backgroundColor: "rgba(74, 124, 94, 0.1)", border: "1.5px solid #4a7c5e" }}>
+          <div className="flex items-center gap-3">
+            <CheckCircle2 size={24} style={{ color: "#4a7c5e" }} />
+            <div>
+              <div className="t-body-sm font-bold" style={{ color: "#4a7c5e" }}>
+                STAGE {recentlyClearedStage.stageCode} ({recentlyClearedStage.stageName}) PASSED & RELEASED
+              </div>
+              <div className="t-label text-[11px]" style={{ color: "var(--ink)" }}>
+                Unit <strong>{recentlyClearedStage.htuNo}</strong> (WO {recentlyClearedStage.woNumber}) is conforming. Ready to proceed to <strong>{recentlyClearedStage.nextStageCode} - {recentlyClearedStage.nextStageName}</strong>.
+              </div>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button
+              onClick={() => {
+                setFormPrefillStage(recentlyClearedStage.nextStageCode);
+                setShowForm(true);
+                setRecentlyClearedStage(null);
+              }}
+              className="t-button h-8 px-4 rounded-lg flex items-center gap-1.5"
+              style={{ backgroundColor: "#4a7c5e", color: "#ffffff" }}
+            >
+              Inspect Next Stage: {recentlyClearedStage.nextStageCode} <ChevronRight size={14} />
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setRecentlyClearedStage(null)}
+              className="h-8 w-8 p-0 text-[var(--muted)] hover:text-[var(--ink)]"
+            >
+              <X size={14} />
+            </Button>
+          </div>
+        </div>
+      )}
+
       <FilterBar count={visibleRecords.length}>
         <Filter size={13} style={{ color: "var(--muted)" }} />
         <Select value={resultFilter} onValueChange={setResultFilter}>
@@ -3012,7 +3102,8 @@ function InspectionModule({ plant, user, prefillStage, onPrefillConsumed }: { pl
 //  - Mandatory Parameter Validations: Every single parameter must be recorded
 //  - Defect-Only Visual Proof: Only shown when one or more parameters fail
 // ============================================================
-function InspectionForm({ stages, workOrders, user, prefillStageCode, onSubmitted, onCancel }: {
+function InspectionForm({ stages, workOrders, user, prefillStageCode, onSubmitted, onCancel, onStageCleared }: {
+  onStageCleared?: (info: any) => void;
   stages: any[]; workOrders: any[]; user: User; prefillStageCode?: string | null; onSubmitted: () => void; onCancel: () => void;
 }) {
   const [activeStep, setActiveStep] = useState<1 | 2 | 3 | 4>(1);
@@ -3651,13 +3742,13 @@ function InspectionForm({ stages, workOrders, user, prefillStageCode, onSubmitte
                         color: "var(--ink)",
                       }}
                     >
-                      <span className="font-medium">{user.role === "Admin" ? `${user.name} (IT Desk Entry)` : user.name}</span>
+                      <span className="font-medium">{user.name}</span>
                       <span className="t-label text-[10px] px-1.5 py-0.5 rounded font-mono" style={{ backgroundColor: "var(--canvas-soft)", color: "var(--muted)" }}>
-                        {user.role === "Admin" ? "IT Governance Staff" : `${user.role} · @${user.username || user.name.toLowerCase().replace(/\s+/g, '.')}`}
+                        {`${user.role} · @${user.username || user.name.toLowerCase().replace(/\s+/g, '.')}`}
                       </span>
                     </div>
                     <div className="t-label text-[10px] mt-0.5" style={{ color: "var(--muted-soft)" }}>
-                      {user.role === "Admin" ? "IT Desk Entry: Recording measurements on behalf of shopfloor crew. Sign-offs reserved for QC & Plant leadership." : "Authenticated digital author logged into this session."}
+                      "Authenticated digital author logged into this session."
                     </div>
                   </div>
 
@@ -3941,6 +4032,36 @@ function InspectionForm({ stages, workOrders, user, prefillStageCode, onSubmitte
                 )}
               </div>
             </div>
+
+                        {/* QUALITY CONTAINMENT STOP BANNER (Failure Cascade) */}
+            {hasFailedMeasurement && (
+              <div className="rounded-xl p-4 space-y-2" style={{ backgroundColor: "rgba(160, 69, 69, 0.08)", border: "2px solid var(--semantic-error)" }}>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <AlertTriangle size={18} style={{ color: "var(--semantic-error)" }} />
+                    <span className="t-body-sm font-bold" style={{ color: "var(--semantic-error)" }}>
+                      CRITICAL QUALITY CONTAINMENT STOP — INSPECTION HALTED
+                    </span>
+                  </div>
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded font-mono uppercase bg-red-100 text-red-800">
+                    DOWNSTREAM HALTED
+                  </span>
+                </div>
+                <p className="t-label text-xs" style={{ color: "var(--ink)" }}>
+                  Characteristic <strong>"{failedChars[0]}"</strong> failed tolerance specifications. Under ISO 9001:2015 Clause 8.7 and Hi-Tech QMS containment protocol, downstream inspection is <strong>halted immediately</strong>. Segregate radiator unit <strong>{htuNo}</strong> and proceed to Step 4 for mandatory photographic proof and disposition authorization (Rework/Scrap).
+                </p>
+                <div className="pt-1 flex justify-end">
+                  <Button
+                    type="button"
+                    onClick={() => setActiveStep(4)}
+                    className="h-8 px-3 text-xs rounded-lg flex items-center gap-1.5"
+                    style={{ backgroundColor: "var(--semantic-error)", color: "#ffffff" }}
+                  >
+                    Proceed to Step 4: Containment & Sign-off <ChevronRight size={13} />
+                  </Button>
+                </div>
+              </div>
+            )}
 
             {/* Special S14 Quality Gate Banner */}
             {stage?.stageCode === "S14" && (
@@ -6809,7 +6930,7 @@ function UserManagementModule({ plant, currentUser }: { plant: string; currentUs
                 <DataTable
                   columns={columns}
                   data={filtered}
-                  onRowClick={(u) => canEdit(u) && setSelected(u)}
+                  onRowClick={(u) => setSelected(u)}
                   emptyMessage="No users found."
                   mobileCardRender={(u) => (
                     <div className="space-y-2">
@@ -7049,7 +7170,7 @@ function UserManagementModule({ plant, currentUser }: { plant: string; currentUs
 
       <Sheet open={showCreate} onOpenChange={setShowCreate}>
         <SheetContent className="w-full md:w-[40vw] md:max-w-[800px] p-0 overflow-y-auto" style={{ backgroundColor: "var(--surface-card)" }}>
-          <CreateUserForm stages={stages} allUsers={users} plant={plant} onCreated={() => { setShowCreate(false); load(); }} />
+          <CreateUserForm stages={stages} allUsers={users} plant={plant} currentUser={currentUser} onCreated={() => { setShowCreate(false); load(); }} />
         </SheetContent>
       </Sheet>
     </div>
@@ -7075,7 +7196,15 @@ function UserDetail({ user, allUsers = [], stages, currentUser, onUpdated }: { u
     return (allUsers || []).filter((u: any) => u.managerId === user.id);
   }, [allUsers, user.id]);
 
+  const myLevel = ROLE_HIERARCHY_LEVELS[currentUser.role as Role] || 0;
+  const targetLevel = ROLE_HIERARCHY_LEVELS[user.role as Role] || 0;
+  const canModify = myLevel > targetLevel;
+
   const save = async () => {
+    if (!canModify) {
+      toast({ title: "Authority Error", description: "You cannot modify an account equal to or above your hierarchy level.", variant: "destructive" });
+      return;
+    }
     setSaving(true);
     const res = await fetch("/api/users", {
       method: "PATCH",
@@ -7124,6 +7253,21 @@ function UserDetail({ user, allUsers = [], stages, currentUser, onUpdated }: { u
         <SheetDescription className="t-body-md" style={{ color: "var(--muted)" }}>@{user.username} · {user.email}</SheetDescription>
       </SheetHeader>
       <div className="p-6 space-y-5">
+        {/* Authority Protection Check (ISO 9001:2015 Clause 5.3) */}
+        {!canModify && (
+          <div className="rounded-xl p-3.5 space-y-1.5" style={{ backgroundColor: "rgba(160, 69, 69, 0.08)", border: "1.5px solid var(--semantic-error)" }}>
+            <div className="flex items-center gap-2">
+              <ShieldAlert size={17} style={{ color: "var(--semantic-error)" }} />
+              <span className="t-body-sm font-bold" style={{ color: "var(--semantic-error)" }}>
+                Protected Executive Account · Authority Modification Locked
+              </span>
+            </div>
+            <p className="t-label text-[11px]" style={{ color: "var(--ink)" }}>
+              <strong>{user.name}</strong> holds the role of <strong>{ROLE_LABELS[user.role] || user.role}</strong> (Hierarchy Level {targetLevel}). Your role <strong>{ROLE_LABELS[currentUser.role] || currentUser.role}</strong> (Level {myLevel}) does not possess authority to modify or reassign this account (ISO 9001:2015 Clause 5.3).
+            </p>
+          </div>
+        )}
+
         {/* Authority Tier Banner */}
         <div className="rounded-xl p-3.5 flex items-center justify-between" style={{ backgroundColor: "rgba(8, 50, 96, 0.05)", border: "1px solid rgba(8, 50, 96, 0.15)" }}>
           <div className="flex items-center gap-2.5">
@@ -7155,8 +7299,8 @@ function UserDetail({ user, allUsers = [], stages, currentUser, onUpdated }: { u
             </div>
             <span className="t-label text-[10px]" style={{ color: "var(--muted)" }}>APPROVAL CHAIN</span>
           </div>
-          <Select value={managerId || "none"} onValueChange={(val) => setManagerId(val === "none" ? "" : val)}>
-            <SelectTrigger className="w-full t-body-sm h-9 rounded-lg" style={{ borderColor: "var(--hairline)", backgroundColor: "var(--surface-card)" }}>
+          <Select value={managerId || "none"} onValueChange={(val) => setManagerId(val === "none" ? "" : val)} disabled={!canModify}>
+            <SelectTrigger className="w-full t-body-sm h-9 rounded-lg" style={{ borderColor: "var(--hairline)", backgroundColor: !canModify ? "var(--canvas-soft)" : "var(--surface-card)" }}>
               <SelectValue placeholder="Select Direct Manager / Supervisor" />
             </SelectTrigger>
             <SelectContent className="max-h-64">
@@ -7199,10 +7343,10 @@ function UserDetail({ user, allUsers = [], stages, currentUser, onUpdated }: { u
         <div className="grid grid-cols-2 gap-3">
           <div>
             <Label className="t-label" style={{ color: "var(--muted)" }}>Role</Label>
-            <Select value={role} onValueChange={setRole} disabled={currentUser.role !== "Admin" && role === "Admin"}>
-              <SelectTrigger className="mt-1 t-body-sm h-9 rounded-lg" style={{ borderColor: "var(--hairline)" }}><SelectValue /></SelectTrigger>
+            <Select value={role} onValueChange={setRole} disabled={!canModify}>
+              <SelectTrigger className="mt-1 t-body-sm h-9 rounded-lg" style={{ borderColor: "var(--hairline)", backgroundColor: !canModify ? "var(--canvas-soft)" : "var(--surface-card)" }}><SelectValue /></SelectTrigger>
               <SelectContent>
-                {ROLE_OPTIONS.filter(r => currentUser.role === "Admin" || r !== "Admin").map(r => (
+                {ROLE_OPTIONS.filter(r => currentUser.role === "CEO" || (ROLE_HIERARCHY_LEVELS[r] || 0) < myLevel).map(r => (
                   <SelectItem key={r} value={r}>{ROLE_LABELS[r] || r}</SelectItem>
                 ))}
               </SelectContent>
@@ -7210,8 +7354,8 @@ function UserDetail({ user, allUsers = [], stages, currentUser, onUpdated }: { u
           </div>
           <div>
             <Label className="t-label" style={{ color: "var(--muted)" }}>Department</Label>
-            <Select value={department} onValueChange={setDepartment}>
-              <SelectTrigger className="mt-1 t-body-sm h-9 rounded-lg" style={{ borderColor: "var(--hairline)" }}><SelectValue placeholder="-" /></SelectTrigger>
+            <Select value={department} onValueChange={setDepartment} disabled={!canModify}>
+              <SelectTrigger className="mt-1 t-body-sm h-9 rounded-lg" style={{ borderColor: "var(--hairline)", backgroundColor: !canModify ? "var(--canvas-soft)" : "var(--surface-card)" }}><SelectValue placeholder="-" /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="-">-</SelectItem>
                 {DEPARTMENT_OPTIONS.map(d => <SelectItem key={d} value={d}>{d}</SelectItem>)}
@@ -7220,8 +7364,8 @@ function UserDetail({ user, allUsers = [], stages, currentUser, onUpdated }: { u
           </div>
           <div>
             <Label className="t-label" style={{ color: "var(--muted)" }}>Shift Preference</Label>
-            <Select value={shiftPreference} onValueChange={setShiftPreference}>
-              <SelectTrigger className="mt-1 t-body-sm h-9 rounded-lg" style={{ borderColor: "var(--hairline)" }}><SelectValue placeholder="-" /></SelectTrigger>
+            <Select value={shiftPreference} onValueChange={setShiftPreference} disabled={!canModify}>
+              <SelectTrigger className="mt-1 t-body-sm h-9 rounded-lg" style={{ borderColor: "var(--hairline)", backgroundColor: !canModify ? "var(--canvas-soft)" : "var(--surface-card)" }}><SelectValue placeholder="-" /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="-">-</SelectItem>
                 {SHIFT_OPTIONS.map(s => <SelectItem key={s} value={s}>Shift {s}</SelectItem>)}
@@ -7230,8 +7374,8 @@ function UserDetail({ user, allUsers = [], stages, currentUser, onUpdated }: { u
           </div>
           <div>
             <Label className="t-label" style={{ color: "var(--muted)" }}>Status</Label>
-            <Select value={status} onValueChange={setStatus}>
-              <SelectTrigger className="mt-1 t-body-sm h-9 rounded-lg" style={{ borderColor: "var(--hairline)" }}><SelectValue /></SelectTrigger>
+            <Select value={status} onValueChange={setStatus} disabled={!canModify}>
+              <SelectTrigger className="mt-1 t-body-sm h-9 rounded-lg" style={{ borderColor: "var(--hairline)", backgroundColor: !canModify ? "var(--canvas-soft)" : "var(--surface-card)" }}><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="Active">Active</SelectItem>
                 <SelectItem value="Suspended">Suspended</SelectItem>
@@ -7252,8 +7396,9 @@ function UserDetail({ user, allUsers = [], stages, currentUser, onUpdated }: { u
                 <button
                   key={s.id}
                   type="button"
+                  disabled={!canModify}
                   onClick={() => toggleStage(s.stageCode, assignedStages, setAssignedStages)}
-                  className="flex items-center gap-2 p-2 rounded-lg text-left transition-colors"
+                  className={`flex items-center gap-2 p-2 rounded-lg text-left transition-colors ${!canModify ? "opacity-60 cursor-not-allowed" : ""}`}
                   style={{ border: `1px solid ${checked ? "var(--primary)" : "var(--hairline)"}`, backgroundColor: checked ? "#c4741a0d" : "var(--canvas-soft)" }}
                 >
                   {checked ? <CheckSquare size={13} style={{ color: "var(--primary)" }} /> : <Square size={13} style={{ color: "var(--muted)" }} />}
@@ -7276,8 +7421,9 @@ function UserDetail({ user, allUsers = [], stages, currentUser, onUpdated }: { u
                 <button
                   key={s.id}
                   type="button"
+                  disabled={!canModify}
                   onClick={() => toggleStage(s.stageCode, managedStages, setManagedStages)}
-                  className="flex items-center gap-2 p-2 rounded-lg text-left transition-colors"
+                  className={`flex items-center gap-2 p-2 rounded-lg text-left transition-colors ${!canModify ? "opacity-60 cursor-not-allowed" : ""}`}
                   style={{ border: `1px solid ${checked ? "var(--primary)" : "var(--hairline)"}`, backgroundColor: checked ? "#c4741a0d" : "var(--canvas-soft)" }}
                 >
                   {checked ? <CheckSquare size={13} style={{ color: "var(--primary)" }} /> : <Square size={13} style={{ color: "var(--muted)" }} />}
@@ -7291,21 +7437,24 @@ function UserDetail({ user, allUsers = [], stages, currentUser, onUpdated }: { u
           </div>
         </div>
       </div>
-      <div className="px-6 pb-6 flex gap-2 justify-end border-t pt-4" style={{ borderColor: "var(--hairline)" }}>
-        <Button variant="outline" onClick={toggleSuspend} className="t-body-sm h-9 px-4 rounded-lg flex items-center gap-1.5" style={{ color: status === "Active" ? "var(--semantic-error)" : "var(--semantic-success)" }}>
+      <div className="px-6 pb-6 flex items-center gap-2 justify-end border-t pt-4" style={{ borderColor: "var(--hairline)" }}>
+        <Button variant="outline" onClick={toggleSuspend} disabled={saving || !canModify} className="t-body-sm h-9 px-4 rounded-lg flex items-center gap-1.5" style={{ color: status === "Active" ? "var(--semantic-error)" : "var(--semantic-success)" }}>
           {status === "Active" ? <><Ban size={14} /> Suspend</> : <><CheckCircle2 size={14} /> Activate</>}
         </Button>
         <Button variant="outline" onClick={onUpdated} className="t-body-sm h-9 px-4 rounded-lg">Close</Button>
-        <Button onClick={save} disabled={saving} className="t-body-sm h-9 px-4 rounded-lg" style={{ backgroundColor: "var(--primary)", color: "var(--on-primary)" }}>{saving ? "Saving…" : "Save Changes"}</Button>
+        <Button onClick={save} disabled={saving || !canModify} className="t-body-sm h-9 px-4 rounded-lg" style={{ backgroundColor: canModify ? "var(--primary)" : "var(--muted)", color: "var(--on-primary)" }}>{saving ? "Saving…" : !canModify ? "Locked (Read-Only)" : "Save Changes"}</Button>
       </div>
     </div>
   );
 }
 
-function CreateUserForm({ stages, allUsers = [], plant, onCreated }: { stages: any[]; allUsers?: any[]; plant: string; onCreated: () => void }) {
+function CreateUserForm({ stages, allUsers = [], plant, currentUser, onCreated }: { stages: any[]; allUsers?: any[]; plant: string; currentUser?: User; onCreated: () => void }) {
+  const actorLevel = currentUser ? (ROLE_HIERARCHY_LEVELS[currentUser.role as Role] || 0) : 100;
+  const allowedRoles = ROLE_OPTIONS.filter(r => (currentUser?.role === "CEO" || currentUser?.role === "Admin") || (ROLE_HIERARCHY_LEVELS[r] || 0) < actorLevel);
+
   const [form, setForm] = useState({
     username: "", password: "", name: "", email: "",
-    role: "Operator" as Role, department: "Quality", plant,
+    role: (allowedRoles[0] || "Operator") as Role, department: "Quality", plant,
     shiftPreference: "A", status: "Active",
     managerId: "",
   });
@@ -7350,7 +7499,7 @@ function CreateUserForm({ stages, allUsers = [], plant, onCreated }: { stages: a
           <FormField label="Password *" value={form.password} onChange={(v) => setForm({ ...form, password: v })} placeholder="Set initial password" />
           <FormField label="Full Name *" value={form.name} onChange={(v) => setForm({ ...form, name: v })} placeholder="e.g. Rohan Mehta" />
           <FormField label="Email *" value={form.email} onChange={(v) => setForm({ ...form, email: v })} placeholder="e.g. rohan@hitech.com" />
-          <SelectField label="Role" value={form.role} onChange={(v) => setForm({ ...form, role: v as Role })} options={ROLE_OPTIONS.map(r => [r, ROLE_LABELS[r] || r] as [string, string])} />
+          <SelectField label="Role" value={form.role} onChange={(v) => setForm({ ...form, role: v as Role })} options={allowedRoles.map(r => [r, ROLE_LABELS[r] || r] as [string, string])} />
           <SelectField label="Department" value={form.department} onChange={(v) => setForm({ ...form, department: v })} options={DEPARTMENT_OPTIONS.map(d => [d, d] as [string, string])} />
           <SelectField label="Shift" value={form.shiftPreference} onChange={(v) => setForm({ ...form, shiftPreference: v })} options={SHIFT_OPTIONS.map(s => [s, `Shift ${s}`] as [string, string])} />
           <SelectField label="Plant" value={form.plant} onChange={(v) => setForm({ ...form, plant: v })} options={[["K2","K2 - Khopoli"]]} />
@@ -8061,7 +8210,7 @@ function ReportView({ type, data, plant }: { type: string; data: any; plant: str
 // ============================================================
 // Sales Orders Module - ERP demand view
 // ============================================================
-function SalesOrdersModule({ plant }: { plant: string }) {
+function SalesOrdersModule({ plant, user, onNavigate, onInspect }: { plant: string; user?: User; onNavigate?: (k: ModuleKey) => void; onInspect?: (stageCode: string | null) => void }) {
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -8089,6 +8238,21 @@ function SalesOrdersModule({ plant }: { plant: string }) {
   }, [allOrders, search]);
 
   const summary = data?.summary || { totalOrders: 0, totalOrdered: 0, totalCompleted: 0, totalPending: 0, totalRejected: 0, totalRework: 0, fulfillmentRate: 0 };
+
+  if (selectedSO) {
+    return (
+      <SalesOrderFullProfilePage
+        so={selectedSO}
+        user={user || ({ name: "Quality Manager", role: "QualityManager", username: "quality.mgr", email: "qm@hitech.com", plant: "K2" } as User)}
+        plant={plant}
+        onBack={() => setSelectedSO(null)}
+        onOpenWO={() => {
+          setSelectedSO(null);
+          if (onNavigate) onNavigate("workorders");
+        }}
+      />
+    );
+  }
 
   return (
     <div className="reveal-up">
@@ -8247,17 +8411,7 @@ function SalesOrdersModule({ plant }: { plant: string }) {
         )}
       </div>
 
-      {/* Sales Order End-to-End Detail Sheet */}
-      <Sheet open={!!selectedSO} onOpenChange={(o) => { if (!o) setSelectedSO(null); }}>
-        <SheetContent side="right" className="w-full md:w-[65vw] lg:w-[60vw] max-w-[1100px] p-0 overflow-y-auto focus:outline-hidden" style={{ backgroundColor: "var(--surface-card)" }}>
-          {selectedSO && (
-            <SalesOrderDetail
-              so={selectedSO}
-              onClose={() => setSelectedSO(null)}
-            />
-          )}
-        </SheetContent>
-      </Sheet>
+      {/* Sales Order Profile renders as independent full page (No Drawer) */}
     </div>
   );
 }

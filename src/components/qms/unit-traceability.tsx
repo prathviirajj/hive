@@ -1001,17 +1001,7 @@ export function SalesOrderDetail({
                 {so.fulfilmentRate}% ({so.completedQty}/{so.orderedQty} units)
               </div>
             </div>
-            {onClose && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={onClose}
-                className="h-8 w-8 p-0 text-[var(--muted)] hover:text-[var(--ink)]"
-                aria-label="Close"
-              >
-                <X size={16} />
-              </Button>
-            )}
+            {/* SheetContent provides its own built-in close button, duplicate removed */}
           </div>
         </div>
       </div>
