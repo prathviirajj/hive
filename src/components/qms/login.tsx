@@ -19,14 +19,14 @@ interface User {
 
 // Quick-login shortcuts mapped to the real org structure.
 const QUICK_LOGINS = [
-  { username: "admin",             password: "admin2026",    name: "Admin" },
-  { username: "kyd.sir",           password: "ceo2026",      name: "CEO (KYD)" },
-  { username: "yogesh.jadhav",     password: "director2026", name: "Plant Director" },
-  { username: "balasaheb.daphal",  password: "dgm2026",      name: "DGM Qual" },
-  { username: "roshan.gaikar",     password: "section2026",  name: "Section Hd" },
-  { username: "rohit.giri",        password: "qual2026",     name: "Qual Mgr" },
-  { username: "rohan.ghodvinde",   password: "qc2026",       name: "Inspector" },
-  { username: "operator.fab.a",    password: "operator2026", name: "Operator" },
+  { username: "admin", password: "admin2026", name: "Admin" },
+  { username: "kyd.sir", password: "ceo2026", name: "CEO (KYD)" },
+  { username: "yogesh.jadhav", password: "director2026", name: "Plant Director" },
+  { username: "balasaheb.daphal", password: "dgm2026", name: "DGM Qual" },
+  { username: "roshan.gaikar", password: "section2026", name: "Section Hd" },
+  { username: "rohit.giri", password: "qual2026", name: "Qual Mgr" },
+  { username: "rohan.ghodvinde", password: "qc2026", name: "Inspector" },
+  { username: "operator.fab.a", password: "operator2026", name: "Operator" },
 ];
 
 export function LoginScreen({ onLogin }: { onLogin: (user: User) => void }) {
