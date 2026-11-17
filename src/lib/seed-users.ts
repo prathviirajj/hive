@@ -16,9 +16,13 @@ const USERS = [
   // ===== IT TEAM =====
   { username: "developers", password: "it2026", name: "IT Team", email: "developers@hitech.com", role: "IT", department: "IT", plant: "K2", phone: "", employeeId: "HTR-IT-001", status: "Active", shiftPreference: "General" },
 
+  // ===== CORPORATE LEADERSHIP =====
+  // Chief Executive Officer (CEO) - Entire Company
+  { username: "kyd.sir", password: "ceo2026", name: "KYD Sir", email: "kyd@hitechradiators.com", role: "CEO", department: "Executive Management", plant: "Corporate", phone: "", employeeId: "HTR-CEO-001", status: "Active", shiftPreference: "General" },
+
   // ===== PLANT LEADERSHIP =====
-  // Plant Director
-  { username: "yogesh.jadhav", password: "director2026", name: "Yogesh Jadhav", email: "yogesh.jadhav@hitechradiators.com", role: "Director", department: "Management", plant: "K2", phone: "", employeeId: "HTR-DR-001", status: "Active", shiftPreference: "General" },
+  // Plant Director - K2 Khopoli (reports to KYD Sir)
+  { username: "yogesh.jadhav", password: "director2026", name: "Yogesh Jadhav", email: "yogesh.jadhav@hitechradiators.com", role: "Director", department: "Plant Management", plant: "K2", phone: "", employeeId: "HTR-DR-001", status: "Active", shiftPreference: "General" },
 
   // DGM Quality - Fabrication & Welding
   { username: "balasaheb.daphal", password: "dgm2026", name: "Balasaheb Daphal", email: "balasaheb.daphal@hitechradiators.com", role: "DGM", department: "Quality", plant: "K2", phone: "", employeeId: "HTR-DGM-001", status: "Active", shiftPreference: "General", managedStages: ["S01","S02","S03","S04","S05","S06","S07","S11","S12","S13"] },

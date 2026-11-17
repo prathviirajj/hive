@@ -81,7 +81,7 @@ type Role =
   | "ProductionSupervisor" | "QCInspector" | "Operator"
   | "Auditor" | "DocumentController" | "ProcessEngineer"
   | "MaintenanceCalibration" | "IncomingQuality" | "ReportViewer"
-  | "Director" | "IT" | "PlantManager" | "DGM" | "LineManager";
+  | "CEO" | "Director" | "IT" | "PlantManager" | "DGM" | "LineManager";
 
 // Modules hidden across ALL roles because the underlying process/feature is
 // still under construction.  They are removed from NAV_GROUPS below and from
@@ -101,6 +101,7 @@ const isHidden = (k: ModuleKey) => HIDDEN_MODULES.includes(k);
 // nobody - not even Admin - can reach an unfinished feature through the UI.
 const _RAW_ACCESS: Record<Role, ModuleKey[]> = {
   Admin: ["dashboard", "workorders", "salesorders", "inspection", "ncr", "fmea", "traceability", "standards", "processflow", "analytics", "audit", "copq", "mis", "investigation", "rca", "comparison", "doceditor", "users", "import", "export", "reports", "rework", "organization"],
+  CEO: ["dashboard", "processflow", "workorders", "salesorders", "inspection", "ncr", "fmea", "reports", "rework", "organization", "users"],
   QualityManager: ["dashboard", "workorders", "salesorders", "inspection", "ncr", "fmea", "traceability", "standards", "processflow", "analytics", "audit", "copq", "mis", "investigation", "rca", "comparison", "doceditor", "users", "reports", "rework", "organization"],
   AssistantManager: ["dashboard", "inspection", "ncr", "fmea", "traceability", "standards", "processflow", "analytics", "audit", "copq", "investigation", "rca", "comparison", "reports", "rework"],
   ProductionSupervisor: ["dashboard", "workorders", "salesorders", "inspection", "ncr", "traceability", "processflow", "analytics", "copq", "comparison", "rework"],
@@ -181,12 +182,13 @@ const K2_STAGES = [
   { code: "S14", name: "Packing" },
 ];
 
-const ROLE_OPTIONS: Role[] = ["Admin", "Director", "IT", "PlantManager", "DGM", "QualityManager", "AssistantManager", "LineManager", "ProductionSupervisor", "QCInspector", "Operator", "Auditor", "DocumentController", "ProcessEngineer", "MaintenanceCalibration", "IncomingQuality", "ReportViewer"];
+const ROLE_OPTIONS: Role[] = ["Admin", "CEO", "Director", "IT", "PlantManager", "DGM", "QualityManager", "AssistantManager", "LineManager", "ProductionSupervisor", "QCInspector", "Operator", "Auditor", "DocumentController", "ProcessEngineer", "MaintenanceCalibration", "IncomingQuality", "ReportViewer"];
 
 // Human-readable label for each role code (used in dropdowns, badges, user mgmt)
 const ROLE_LABELS: Record<string, string> = {
   Admin: "System Administrator",
-  Director: "Director / CEO",
+  CEO: "Chief Executive Officer (CEO)",
+  Director: "Plant Director",
   IT: "IT Team",
   PlantManager: "Plant Manager",
   DGM: "DGM",
@@ -6171,7 +6173,7 @@ function UserManagementModule({ plant, currentUser }: { plant: string; currentUs
       <div>
         <span className="t-label px-2 py-0.5 rounded-full inline-block" style={{ backgroundColor: "var(--surface-strong)", color: "var(--ink)" }}>{ROLE_LABELS[u.role] || u.role}</span>
         <div className="t-label text-[10px] mt-0.5 font-mono" style={{ color: "var(--primary)" }}>
-          {["Admin", "Director", "DGM", "QualityManager", "PlantManager", "LineManager"].includes(u.role) ? "Tier 1: Releasing Approver" :
+          {["Admin", "CEO", "Director", "DGM", "QualityManager", "PlantManager", "LineManager"].includes(u.role) ? "Tier 1: Releasing Approver" :
            ["QCInspector", "ProcessEngineer", "AssistantManager"].includes(u.role) ? "Tier 2: Quality Checker" :
            ["Operator", "ProductionSupervisor"].includes(u.role) ? "Tier 3: Line Operator" : "Governance Staff"}
         </div>
@@ -6213,9 +6215,9 @@ function UserManagementModule({ plant, currentUser }: { plant: string; currentUs
   ];
 
   // Group users into 3 hierarchy tiers
-  const tier1Users = useMemo(() => filtered.filter(u => ["Director", "DGM", "PlantManager", "QualityManager", "Admin", "LineManager"].includes(u.role)), [filtered]);
+  const tier1Users = useMemo(() => filtered.filter(u => ["CEO", "Director", "DGM", "PlantManager", "QualityManager", "Admin", "LineManager"].includes(u.role)), [filtered]);
   const tier2Users = useMemo(() => filtered.filter(u => ["QCInspector", "ProcessEngineer", "AssistantManager"].includes(u.role)), [filtered]);
-  const tier3Users = useMemo(() => filtered.filter(u => !["Director", "DGM", "PlantManager", "QualityManager", "Admin", "LineManager", "QCInspector", "ProcessEngineer", "AssistantManager"].includes(u.role)), [filtered]);
+  const tier3Users = useMemo(() => filtered.filter(u => !["CEO", "Director", "DGM", "PlantManager", "QualityManager", "Admin", "LineManager", "QCInspector", "ProcessEngineer", "AssistantManager"].includes(u.role)), [filtered]);
 
   return (
     <div className="reveal-up">
@@ -6586,12 +6588,12 @@ function UserDetail({ user, allUsers = [], stages, currentUser, onUpdated }: { u
             <ShieldCheck size={18} style={{ color: "var(--primary)" }} />
             <div>
               <div className="t-body-sm font-semibold" style={{ color: "var(--ink)" }}>
-                {["Admin", "Director", "DGM", "QualityManager", "PlantManager", "LineManager"].includes(role) ? "Tier 1: Releasing Approver" :
+                {["Admin", "CEO", "Director", "DGM", "QualityManager", "PlantManager", "LineManager"].includes(role) ? "Tier 1: Releasing Approver" :
                  ["QCInspector", "ProcessEngineer", "AssistantManager"].includes(role) ? "Tier 2: Quality Checker" :
                  ["Operator", "ProductionSupervisor"].includes(role) ? "Tier 3: Line Operator" : "Governance Staff"}
               </div>
               <div className="t-label text-[11px]" style={{ color: "var(--muted)" }}>
-                {["Admin", "Director", "DGM", "QualityManager", "PlantManager", "LineManager"].includes(role) ? "Authorized for final inspection release and rework sign-off" :
+                {["Admin", "CEO", "Director", "DGM", "QualityManager", "PlantManager", "LineManager"].includes(role) ? "Authorized for final inspection release and rework sign-off" :
                  ["QCInspector", "ProcessEngineer", "AssistantManager"].includes(role) ? "Authorized for stage parameter verification and tolerance checks" :
                  "Authorized for shopfloor execution and measurement recording"}
               </div>
@@ -9771,11 +9773,15 @@ function OrganizationModule({ currentUser }: { currentUser: User }) {
 
         {/* ============ ORG TREE CHART ============ */}
         <div className="rounded-xl p-6 mb-6" style={{ border: "1px solid var(--hairline)", backgroundColor: "var(--surface-card)" }}>
-          <h3 className="t-title-sm mb-4" style={{ color: "var(--ink)" }}>Organization Chart - K2 Khopoli</h3>
+          <h3 className="t-title-sm mb-4" style={{ color: "var(--ink)" }}>Organization Chart - Hi-Tech Radiators Corporate & K2 Plant</h3>
 
-          {/* Level 0: Plant Director */}
+          {/* Level -1: Corporate Apex - Entire Company CEO */}
           <div className="flex flex-col items-center">
-            <TreeNode name="Yogesh Jadhav" role="Plant Director" color="yellow" />
+            <TreeNode name="KYD Sir" role="Chief Executive Officer (CEO) - Entire Company" color="yellow" />
+            <VLine h={16} />
+
+            {/* Level 0: Plant Director */}
+            <TreeNode name="Yogesh Jadhav" role="Plant Director - K2 Khopoli" color="yellow" />
             <VLine h={16} />
             {/* Level 1: Vacant Plant Head */}
             <TreeNode name="Plant Head" role="Vacant - K2 Khopoli" color="grey" vacant />
